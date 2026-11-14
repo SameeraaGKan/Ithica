@@ -1,153 +1,859 @@
 {
-  "_note": "STARTER SEED so the pipeline runs end-to-end. D: replace/extend with the 25-30 hand-curated entries from the FaZe challenge timeline. Fill video_id + start_s/end_s from real FaZe uploads, then set verified=true. Run `python -m scripts.load_lore` after editing.",
-  "lore_entries": [
-    {
-      "id": "l_2010_founding",
-      "era": "2010_trickshots",
-      "year": 2010,
-      "title": "FaZe Sniping is born",
-      "people": ["ClipZ", "Housecat", "Resistance"],
-      "summary": "FaZe starts in 2010 as FaZe Sniping, a YouTube channel posting Call of Duty trickshot clips and montages.",
-      "why_it_matters": "Everything FaZe became started as a few kids hitting impossible shots and uploading them. Trickshots are the origin myth.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_founding_scope", "name": "The First Scope", "rarity": "legendary"},
-      "verified": false
-    },
-    {
-      "id": "l_2010_apex",
-      "era": "2010_trickshots",
-      "year": 2010,
-      "title": "Apex joins the crew",
-      "people": ["Apex"],
-      "summary": "Apex joins in the trickshot days and becomes one of the faces and co-owners of FaZe.",
-      "why_it_matters": "He is the thread that runs through every FaZe era, from montages to boardrooms.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_apex_crown", "name": "Apex's Crown", "rarity": "epic"},
-      "verified": false
-    },
-    {
-      "id": "l_2012_1m",
-      "era": "2010_trickshots",
-      "year": 2012,
-      "title": "The 1 Million montage",
-      "people": ["ClipZ", "Apex"],
-      "summary": "FaZe celebrates 1M subscribers with a montage that is still the channel's most-watched video.",
-      "why_it_matters": "The kids who watched this are adults now. This is the video Ithaca is built to bring them back to.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_1m_plaque", "name": "The Million Plaque", "rarity": "legendary"},
-      "verified": false
-    },
-    {
-      "id": "l_2013_rug",
-      "era": "2013_rug_era",
-      "year": 2013,
-      "title": "Rug joins and FaZe goes beyond trickshots",
-      "people": ["Rug"],
-      "summary": "Rug comes up through trickshots and later turns into one of FaZe's biggest vloggers.",
-      "why_it_matters": "This is when FaZe stops being just a Call of Duty clan and becomes a lifestyle and personality brand.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_rug_camera", "name": "Rug's Vlog Cam", "rarity": "rare"},
-      "verified": false
-    },
-    {
-      "id": "l_2013_banks",
-      "era": "2013_rug_era",
-      "year": 2013,
-      "title": "Banks and the business era",
-      "people": ["Banks"],
-      "summary": "Banks joins and helps push FaZe toward merch, events and business deals.",
-      "why_it_matters": "This is the start of FaZe as a company, not just a channel.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_banks_ledger", "name": "The First Ledger", "rarity": "rare"},
-      "verified": false
-    },
-    {
-      "id": "l_esports",
-      "era": "2013_rug_era",
-      "year": 2016,
-      "title": "FaZe goes pro",
-      "people": [],
-      "summary": "FaZe builds competitive rosters, adding pro Call of Duty and Counter-Strike teams.",
-      "why_it_matters": "The trickshot clan proved it could win in esports, not just make montages.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_pro_jersey", "name": "Pro Jersey", "rarity": "epic"},
-      "verified": false
-    },
-    {
-      "id": "l_2020_swagg",
-      "era": "2020_nuke_squad",
-      "year": 2020,
-      "title": "Swagg gets the offer live on stream",
-      "people": ["Swagg"],
-      "summary": "Swagg is recruited during the Warzone boom, with the offer happening live on stream.",
-      "why_it_matters": "FaZe recruits in public. Earning your way in on camera is the Bow Trial in real life.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_swagg_bow", "name": "Swagg's Bow", "rarity": "legendary"},
-      "verified": false
-    },
-    {
-      "id": "l_2020_nuke_squad",
-      "era": "2020_nuke_squad",
-      "year": 2020,
-      "title": "The Nuke Squad",
-      "people": ["Swagg"],
-      "summary": "FaZe's Warzone squad becomes known for chasing nukes on stream during the battle royale era.",
-      "why_it_matters": "A whole new generation found FaZe through Warzone streams rather than YouTube montages.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_nuke_core", "name": "Nuke Core", "rarity": "epic"},
-      "verified": false
-    },
-    {
-      "id": "l_2022_snoop",
-      "era": "2022_snoop",
-      "year": 2022,
-      "title": "Snoop Dogg joins FaZe",
-      "people": ["Snoop Dogg"],
-      "summary": "Snoop Dogg joins FaZe as a member and joins its board of directors in 2022.",
-      "why_it_matters": "FaZe had crossed over into mainstream culture: gaming meets music meets celebrity.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_snoop_chain", "name": "The Doggfather Chain", "rarity": "legendary"},
-      "verified": false
-    },
-    {
-      "id": "l_2022_public",
-      "era": "2022_snoop",
-      "year": 2022,
-      "title": "FaZe goes public",
-      "people": [],
-      "summary": "FaZe Holdings lists on the Nasdaq in 2022.",
-      "why_it_matters": "A trickshot channel became a public company. Huge peak, and the hard years after it set up today's comeback story.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_ticker", "name": "The Ticker Tape", "rarity": "rare"},
-      "verified": false
-    },
-    {
-      "id": "l_today_revival",
-      "era": "today",
-      "year": 2024,
-      "title": "The new FaZe",
-      "people": [],
-      "summary": "After its acquisition, FaZe rebuilds around a new generation of streamers and creators.",
-      "why_it_matters": "This is FaZe's own Odyssey: coming home after years away and winning a new generation.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_homecoming", "name": "The Homecoming Banner", "rarity": "epic"},
-      "verified": false
-    },
-    {
-      "id": "l_today_ithaca",
-      "era": "today",
-      "year": 2026,
-      "title": "Your road home",
-      "people": [],
-      "summary": "Fans old and new come back to FaZe through Ithaca: the Bard, the Oracle and the Bow Trial.",
-      "why_it_matters": "The story keeps going, and now you're in it.",
-      "video_id": null, "start_s": 0, "end_s": null,
-      "relic": {"id": "r_ithaca_key", "name": "Key to Ithaca", "rarity": "common"},
-      "verified": false
-    }
-  ],
-  "video_index": [
-    {"video_id": "REPLACE_ME", "channel": "FaZe Clan", "title": "example", "published_at": "2012-01-01", "views": 0, "era": "2010_trickshots"}
-  ],
-  "faze_channels": ["FaZe Clan", "FaZe Rug", "FaZe Apex", "FaZe Swagg", "FaZe Banks", "FaZe Sniping", "FaZe Jarvis", "FaZe Kaysan"]
+ "_note": "Curated by D (2026-11-14): 30 researched entries, each with sources. verified=false means a detail is disputed or weakly sourced (see verify_note); keep those out of the pitch. sensitive=true entries should not be volunteered by the Bard or the Siren's random rotation. video_id is null until filled from real uploads: run `python -m scripts.ingest_youtube` for suggestions, then `python -m scripts.load_lore`.",
+ "eras": [
+  {
+   "id": "2010_trickshots",
+   "label": "The Trickshot Era",
+   "years": "2010–2012",
+   "odyssey": "The Founding of Ithaca",
+   "blurb": "MW2 trickshots, ILLCAMS, the first million."
+  },
+  {
+   "id": "2013_rug_era",
+   "label": "The Vlog & House Era",
+   "years": "2013–2019",
+   "odyssey": "The Golden Hall",
+   "blurb": "Rug, Adapt and Banks turn FaZe into a lifestyle brand; FaZe House; CS:GO entry."
+  },
+  {
+   "id": "2020_nuke_squad",
+   "label": "The Nuke Squad Era",
+   "years": "2020–2021",
+   "odyssey": "The Trials",
+   "blurb": "Warzone, Nuke Squad, #FaZe5, Atlanta FaZe rings."
+  },
+  {
+   "id": "2022_snoop",
+   "label": "The Snoop & Major Era",
+   "years": "2022–2023",
+   "odyssey": "The Feast of Suitors",
+   "blurb": "FaZe Snoop, the Antwerp Major, the Nasdaq listing and its fall."
+  },
+  {
+   "id": "today",
+   "label": "The Return",
+   "years": "2024–today",
+   "odyssey": "The Homecoming",
+   "blurb": "The reboot, the GameSquare era, and an esports-first FaZe."
+  }
+ ],
+ "lore_entries": [
+  {
+   "id": "l_founding_faze_sniping",
+   "era": "2010_trickshots",
+   "year": 2010,
+   "title": "FaZe Sniping is born",
+   "people": [
+    "CLipZ",
+    "House Cat (Timid)",
+    "Resistance"
+   ],
+   "summary": "Three Call of Duty: Modern Warfare 2 players, Eric \"CLipZ\" Rivera, Jeff \"House Cat\" Emann and Ben \"Resistance\" Christensen, started a YouTube channel called FaZe Sniping to post trickshots.",
+   "why_it_matters": "Everything FaZe became started as three kids clipping impossible sniper shots. The name you wear came from a trickshot crew.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_founding_faze_sniping",
+    "name": "FaZe Sniping Crest",
+    "rarity": "legendary"
+   },
+   "verified": true,
+   "date": "2010-05-30",
+   "find_video": "FaZe Sniping Intro (first upload on the FaZe Clan channel)",
+   "sources": [
+    "https://en.wikipedia.org/wiki/FaZe_Clan",
+    "https://upcomer.com/faze-dirty-the-origin-story-of-an-original-faze-5-winner"
+   ]
+  },
+  {
+   "id": "l_first_upload",
+   "era": "2010_trickshots",
+   "year": 2010,
+   "title": "The first video",
+   "people": [
+    "CLipZ",
+    "House Cat (Timid)",
+    "Resistance"
+   ],
+   "summary": "The channel's first upload was an intro video in which the group still calls itself FaZe Sniping. It went up on the same day the clan was founded.",
+   "why_it_matters": "The first chapter of the whole saga is still on the channel. Any fan can go watch where it began.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_first_upload",
+    "name": "The First Upload",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2010-05-30",
+   "find_video": "FaZe Sniping Intro",
+   "sources": [
+    "https://wiki.sportskeeda.com/youtube/who-is-faze-clan",
+    "https://knowyourmeme.com/memes/faze-clan"
+   ]
+  },
+  {
+   "id": "l_illcams",
+   "era": "2010_trickshots",
+   "year": 2010,
+   "title": "ILLCAMS begins",
+   "people": [
+    "Fakie"
+   ],
+   "summary": "After Ted \"Fakie\" joined, FaZe launched ILLCAMS, a series of trickshot compilations that became the most popular show on the channel.",
+   "why_it_matters": "ILLCAMS is the original FaZe format: the best clips, cut hard, dropped as an event. Every montage since owes it something.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_illcams",
+    "name": "ILLCAMS Reel",
+    "rarity": "rare"
+   },
+   "verified": false,
+   "date": "2010-06",
+   "find_video": "FaZe ILLCAMS episode 1",
+   "sources": [
+    "https://www.wikiwand.com/en/articles/FaZe",
+    "https://wiki.sportskeeda.com/youtube/who-is-faze-clan"
+   ],
+   "verify_note": "Month (June 2010) comes from a fan site; Wikipedia only says ILLCAMS launched after Fakie joined."
+  },
+  {
+   "id": "l_temperrr_joins",
+   "era": "2010_trickshots",
+   "year": 2010,
+   "title": "Temperrr, the teenage builder",
+   "people": [
+    "Temperrr"
+   ],
+   "summary": "Thomas \"Temperrr\" Oliveira joined FaZe at 16 and grew into its first CEO. By 2018 he was running the company at 24.",
+   "why_it_matters": "FaZe was built by its own members, not by outside executives. The kid in the montages became the one running the business.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_temperrr_joins",
+    "name": "Temperrr's Controller",
+    "rarity": "rare"
+   },
+   "verified": false,
+   "find_video": "FaZe Temperrr early trickshot montage",
+   "sources": [
+    "https://www.tubefilter.com/2018/04/26/what-is-faze-clan-gaming-youtube-twitch/",
+    "https://cavac.at/cavacopedia/FaZe%20Clan"
+   ],
+   "verify_note": "Join year not pinned down in sources; 'joined at 16' and 'CEO at 24 in 2018' are sourced."
+  },
+  {
+   "id": "l_apex_joins",
+   "era": "2010_trickshots",
+   "year": 2011,
+   "title": "Apex joins",
+   "people": [
+    "Apex"
+   ],
+   "summary": "Yousef \"Apex\" Abdelfattah joined in 2011. He became one of FaZe's biggest creators and later its COO.",
+   "why_it_matters": "Apex is one of the threads that runs from the trickshot days straight through to the boardroom.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_apex_joins",
+    "name": "Apex's Headset",
+    "rarity": "common"
+   },
+   "verified": true,
+   "find_video": "FaZe Apex trickshot montage 2011",
+   "sources": [
+    "https://www.complex.com/pop-culture/a/taffeta-chime/faze-clan-streaming-twitch-youtube-explainer"
+   ]
+  },
+  {
+   "id": "l_silver_play_button",
+   "era": "2010_trickshots",
+   "year": 2011,
+   "title": "100,000 subscribers",
+   "people": [],
+   "summary": "The FaZe Clan channel earned its Silver Play Button for crossing 100,000 subscribers in 2011.",
+   "why_it_matters": "About a year in, a trickshot channel had an audience the size of a small city.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_silver_play_button",
+    "name": "Silver Play Button",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2011",
+   "find_video": "FaZe Clan 100k subscribers",
+   "sources": [
+    "https://wikiwand.com/en/articles/FaZe_Clan"
+   ]
+  },
+  {
+   "id": "l_one_million",
+   "era": "2010_trickshots",
+   "year": 2012,
+   "title": "One million subscribers",
+   "people": [],
+   "summary": "By 2012 the channel had a million subscribers, making FaZe one of the first big gaming channels on YouTube.",
+   "why_it_matters": "This is the moment the plan's hook is about. A million people were watching Call of Duty trickshots before 'creator' was even a job title.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_one_million",
+    "name": "One Million Banner",
+    "rarity": "legendary"
+   },
+   "verified": false,
+   "date": "2012",
+   "find_video": "FaZe Clan 1 million subscriber montage",
+   "sources": [
+    "https://www.complex.com/pop-culture/a/taffeta-chime/faze-clan-streaming-twitch-youtube-explainer",
+    "https://www.wikiwand.com/en/articles/FaZe"
+   ],
+   "verify_note": "The 1M milestone is sourced. The pitch claim that the 1M celebration montage is FaZe's most-watched video at 12.1M views is NOT verified; check the channel's Popular tab before saying it on stage."
+  },
+  {
+   "id": "l_esports_debut_2012",
+   "era": "2010_trickshots",
+   "year": 2012,
+   "title": "FaZe goes competitive",
+   "people": [
+    "Heist",
+    "Folsom",
+    "Secretly",
+    "Sham"
+   ],
+   "summary": "In 2012 FaZe moved into competitive Call of Duty. Its first roster played the MLG Winter Championship 2012.",
+   "why_it_matters": "The montage crew decided to compete too. That choice is the root of every FaZe trophy since.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_esports_debut_2012",
+    "name": "MLG Badge 2012",
+    "rarity": "rare"
+   },
+   "verified": false,
+   "date": "2012",
+   "find_video": "FaZe Clan MLG Winter Championship 2012",
+   "sources": [
+    "https://www.tubefilter.com/2018/04/26/what-is-faze-clan-gaming-youtube-twitch/",
+    "https://knowyourmeme.com/memes/people/faze-clan"
+   ],
+   "verify_note": "Roster names come from a mirrored wiki and the 5th-place finish from Know Your Meme. Check both before using them."
+  },
+  {
+   "id": "l_swan_joins",
+   "era": "2010_trickshots",
+   "year": 2012,
+   "title": "Swan joins at 14",
+   "people": [
+    "Swan"
+   ],
+   "summary": "Casey \"Swan\" Swanson was 14 when a two-piece headshot killcam on Terminal got FaZe's attention and earned him a spot.",
+   "why_it_matters": "One clip was enough to get you recruited. That's the original version of the Bow Trial.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_swan_joins",
+    "name": "Terminal Killcam",
+    "rarity": "common"
+   },
+   "verified": true,
+   "date": "2012",
+   "find_video": "FaZe Swan joining montage Terminal",
+   "sources": [
+    "https://www.tubefilter.com/2019/03/07/youtube-millionaires-faze-swan/amp/"
+   ]
+  },
+  {
+   "id": "l_adapt_joins",
+   "era": "2013_rug_era",
+   "year": 2013,
+   "title": "Adapt joins at 16",
+   "people": [
+    "Adapt"
+   ],
+   "summary": "Alexander \"Adapt\" Prynkiewicz joined FaZe in 2013 at 16. He built a following on Call of Duty and then on vlogs, pranks and reactions.",
+   "why_it_matters": "Adapt is the pivot from trickshots to personality. Fans started watching the people, not just the shots.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_adapt_joins",
+    "name": "Adapt's Vlog Cam",
+    "rarity": "common"
+   },
+   "verified": true,
+   "date": "2013",
+   "find_video": "FaZe Adapt joining FaZe 2013",
+   "sources": [
+    "https://www.complex.com/pop-culture/a/taffeta-chime/faze-clan-streaming-twitch-youtube-explainer"
+   ]
+  },
+  {
+   "id": "l_rug_joins",
+   "era": "2013_rug_era",
+   "year": 2013,
+   "title": "Rug joins",
+   "people": [
+    "Rug"
+   ],
+   "summary": "Brian \"Rug\" Awadis joined through Call of Duty and grew into FaZe's biggest individual YouTuber with vlogs and challenges. He later starred in FaZe's 2020 film Crimson.",
+   "why_it_matters": "For a whole generation, Rug's vlogs were the front door to FaZe.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_rug_joins",
+    "name": "Rug's Crimson Reel",
+    "rarity": "rare"
+   },
+   "verified": false,
+   "find_video": "FaZe Rug first trickshot montage",
+   "sources": [
+    "https://en.wikipedia.org/wiki/FaZe_Clan"
+   ],
+   "verify_note": "Join date not confirmed by a solid source (commonly cited as 2012 or 2013). The Crimson film is sourced."
+  },
+  {
+   "id": "l_banks_joins",
+   "era": "2013_rug_era",
+   "year": 2013,
+   "title": "Banks brings the lifestyle",
+   "people": [
+    "Banks"
+   ],
+   "summary": "Richard \"Banks\" Bengtson joined and pushed FaZe toward lifestyle content alongside the gaming videos.",
+   "why_it_matters": "Banks helped turn a gaming clan into a culture brand. He shows up again in 2024 as CEO.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_banks_joins",
+    "name": "Banks' Lifestyle Pass",
+    "rarity": "common"
+   },
+   "verified": false,
+   "find_video": "FaZe Banks early vlog",
+   "sources": [
+    "https://meyerdindoutiors.blogspot.com/2022/07/how-to-watch-your-valorant-replays.html"
+   ],
+   "verify_note": "Only a scraped blog gives 2013. Check before using the year."
+  },
+  {
+   "id": "l_cs_entry_2016",
+   "era": "2013_rug_era",
+   "year": 2016,
+   "title": "FaZe enters Counter-Strike",
+   "people": [],
+   "summary": "In January 2016 FaZe bought the G2 Esports CS:GO roster, its biggest esports bet up to that point.",
+   "why_it_matters": "This is where FaZe the montage brand also became FaZe the world-class esports team. The path to Antwerp starts here.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_cs_entry_2016",
+    "name": "CS:GO Entry Pass",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2016-01",
+   "find_video": "FaZe Clan CS:GO roster announcement 2016",
+   "sources": [
+    "https://www.thexboxhub.com/?p=47694",
+    "https://esportsatlas.pages.dev/teams/faze-clan.html"
+   ]
+  },
+  {
+   "id": "l_faze_house",
+   "era": "2013_rug_era",
+   "year": 2016,
+   "title": "The FaZe House era",
+   "people": [],
+   "summary": "The FaZe House put members under one roof and became a content machine. FaZe's own timeline calls it one of the brand's defining eras.",
+   "why_it_matters": "If you remember FaZe as a group of friends always together on camera, this is the era you remember.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_faze_house",
+    "name": "FaZe House Key",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2016",
+   "find_video": "FaZe House tour",
+   "sources": [
+    "https://fazeclan.com/pages/about"
+   ]
+  },
+  {
+   "id": "l_reach_2018",
+   "era": "2013_rug_era",
+   "year": 2018,
+   "title": "116 million followers",
+   "people": [
+    "Temperrr"
+   ],
+   "summary": "By spring 2018 FaZe had fewer than 60 creators but more than 116 million followers across platforms, and drew over 245 million YouTube views in March 2018 alone.",
+   "why_it_matters": "This is the peak a lapsed fan remembers: FaZe everywhere, all the time.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_reach_2018",
+    "name": "116M Medallion",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2018-04",
+   "sources": [
+    "https://www.tubefilter.com/2018/04/26/what-is-faze-clan-gaming-youtube-twitch/"
+   ]
+  },
+  {
+   "id": "l_fashion_2018",
+   "era": "2013_rug_era",
+   "year": 2018,
+   "title": "From gaming to streetwear",
+   "people": [],
+   "summary": "FaZe launched major fashion collaborations, taking gaming culture into streetwear.",
+   "why_it_matters": "The hoodie in your closet is part of the lore. Argos Remembers is built for this era's merch.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_fashion_2018",
+    "name": "Streetwear Tag",
+    "rarity": "common"
+   },
+   "verified": true,
+   "date": "2018",
+   "sources": [
+    "https://fazeclan.com/pages/about"
+   ]
+  },
+  {
+   "id": "l_nuke_squad",
+   "era": "2020_nuke_squad",
+   "year": 2020,
+   "title": "Nuke Squad makes FaZe",
+   "people": [
+    "Swagg",
+    "JSmooth",
+    "Santana",
+    "Booya"
+   ],
+   "summary": "JSmooth, Santana and Booya joined their Nuke Squad teammate Swagg in FaZe after six months in the FaZe Academy. Swagg broke the news to his friends live on stream, and the clip of their reactions spread fast.",
+   "why_it_matters": "Four friends who met playing Call of Duty online made it together, live on stream. It's the best real-life example of a Bow Trial.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_nuke_squad",
+    "name": "Nuke Squad Patch",
+    "rarity": "legendary"
+   },
+   "verified": true,
+   "date": "2020-03-23",
+   "find_video": "Swagg surprises Nuke Squad joining FaZe livestream",
+   "sources": [
+    "https://investor.fazeclan.com/news-releases/news-release-details/faze-clan-welcomes-nuke-squad-official-members"
+   ],
+   "verify_note": "Use this line in the pitch instead of 'Swagg got his offer live on stream'. FaZe's press release says Swagg surprised the other three on stream."
+  },
+  {
+   "id": "l_swagg_joins",
+   "era": "2020_nuke_squad",
+   "year": 2020,
+   "title": "Swagg joins FaZe",
+   "people": [
+    "Swagg"
+   ],
+   "summary": "Kris \"Swagg\" Lamberson joined FaZe in 2020 after years making Call of Duty videos. He became the org's first Black member and one of the biggest Warzone creators.",
+   "why_it_matters": "Swagg's rise came from grinding content, not from a big contract. That's the path ITHACA's talent funnel copies.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_swagg_bow",
+    "name": "Swagg's Bow",
+    "rarity": "legendary"
+   },
+   "verified": false,
+   "date": "2020",
+   "find_video": "Welcome FaZe Swagg 2020",
+   "sources": [
+    "https://www.vidcon.com/anaheim/speaker/14427",
+    "https://www.dexerto.com/call-of-duty/swagg-becomes-the-latest-call-of-duty-youtuber-to-join-faze-clan-1349332/"
+   ],
+   "verify_note": "Sources disagree on the exact date. FaZe's 24 March 2020 press release already calls him a member, while Dexerto and others report the official welcome on 4 April 2020. Say '2020' only."
+  },
+  {
+   "id": "l_faze5",
+   "era": "2020_nuke_squad",
+   "year": 2020,
+   "title": "#FaZe5: open tryouts",
+   "people": [
+    "Faxuty",
+    "VIRUS",
+    "Flea",
+    "Nio",
+    "K1nG",
+    "Scope"
+   ],
+   "summary": "More than 211,000 people applied to the #FaZe5 recruitment challenge. FaZe revealed one winner per day on livestreams from December 27 to 31, then added a surprise sixth. Each winner got $20,000 and a G FUEL deal.",
+   "why_it_matters": "FaZe has already shown that fans will compete for a spot. ITHACA's weekly Bow Trial is that idea running all year.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_faze5",
+    "name": "#FaZe5 Golden Ticket",
+    "rarity": "legendary"
+   },
+   "verified": true,
+   "date": "2020-12-31",
+   "find_video": "FaZe5 winner reveal livestream",
+   "sources": [
+    "https://prnewswire.com/news-releases/faze-clan-wraps-a-successful-2020-with-faze5-challenge-drawing-astounding-viewership-numbers--six-new-members-301200974.html"
+   ]
+  },
+  {
+   "id": "l_atl_faze_champs_2021",
+   "era": "2020_nuke_squad",
+   "year": 2021,
+   "title": "Atlanta FaZe win Champs",
+   "people": [
+    "Simp",
+    "aBeZy",
+    "Cellium",
+    "Arcitys"
+   ],
+   "summary": "A year after losing the 2020 final, Atlanta FaZe won the 2021 Call of Duty League Championship, beating Toronto Ultra 5-3 for the $1.2 million first prize.",
+   "why_it_matters": "It's a redemption story, and it brought FaZe back to the top of the game the clan started in.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_atl_faze_champs_2021",
+    "name": "Atlanta FaZe Champs Ring",
+    "rarity": "legendary"
+   },
+   "verified": true,
+   "date": "2021-08-22",
+   "find_video": "Atlanta FaZe CDL Champs 2021 final winning moment",
+   "sources": [
+    "https://www.ajc.com/sports/state-sports/atlanta-faze-captures-cod-league-championship/C22BE2YEW5DM7HR7WH6OR277TI",
+    "https://dotesports.com/?p=446279"
+   ]
+  },
+  {
+   "id": "l_faze_snoop",
+   "era": "2022_snoop",
+   "year": 2022,
+   "title": "FaZe Snoop",
+   "people": [
+    "Snoop Dogg"
+   ],
+   "summary": "On March 7, 2022, FaZe announced Snoop Dogg as \"FaZe Snoop\", a talent member who would also join the board once the company went public.",
+   "why_it_matters": "This is the height of FaZe's celebrity era. To many older fans it also marks when FaZe stopped feeling like theirs.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_faze_snoop",
+    "name": "FaZe Snoop Card",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2022-03-07",
+   "find_video": "Introducing FaZe Snoop",
+   "sources": [
+    "https://tubefilter.com/2022/03/07/snoop-dogg-faze-clan-partnership/",
+    "https://www.shacknews.com/article/129178/snoop-dogg-to-join-faze-clan-board-of-directors"
+   ]
+  },
+  {
+   "id": "l_antwerp_major",
+   "era": "2022_snoop",
+   "year": 2022,
+   "title": "Antwerp: the first international Major champions",
+   "people": [
+    "karrigan",
+    "rain",
+    "Twistzz",
+    "ropz",
+    "broky"
+   ],
+   "summary": "FaZe beat defending champions NAVI 2-0 to win the PGL Major Antwerp. They were the first fully international roster to win a CS:GO Major. The final peaked above 2 million concurrent viewers.",
+   "why_it_matters": "The trickshot channel became Counter-Strike world champion. It was karrigan's first Major after years of trying.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_antwerp_major",
+    "name": "Antwerp Major Trophy",
+    "rarity": "legendary"
+   },
+   "verified": true,
+   "date": "2022-05-22",
+   "find_video": "FaZe win PGL Major Antwerp 2022 final moment",
+   "sources": [
+    "https://en.wikipedia.org/wiki/PGL_Major_Antwerp_2022",
+    "https://nerdstreet.com/news/2022/5/faze-clan-win-csgo-pgl-major-antwerp-with-international-roster"
+   ]
+  },
+  {
+   "id": "l_faze1",
+   "era": "2022_snoop",
+   "year": 2022,
+   "title": "FaZe1 and Proze",
+   "people": [
+    "Proze"
+   ],
+   "summary": "Proze was cut from the #FaZe5 top 20 in 2020. He came back two years later and won FaZe1, the follow-up recruitment challenge.",
+   "why_it_matters": "He lost once and came back to win. It's a homecoming story inside the FaZe story.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_faze1",
+    "name": "FaZe1 Comeback Coin",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2022-05",
+   "find_video": "FaZe1 winner Proze",
+   "sources": [
+    "https://tubefilter.com/2022/05/27/faze-clan-proze-faze1-the-warehouse-winner-competition/"
+   ],
+   "verify_note": "The FaZe1 prize was paid in crypto. Leave that out of anything the Bard says (see the plan's crypto warning)."
+  },
+  {
+   "id": "l_nasdaq_2022",
+   "era": "2022_snoop",
+   "year": 2022,
+   "title": "FaZe goes public",
+   "people": [],
+   "summary": "FaZe listed on Nasdaq through a SPAC merger at a reported $725 million valuation. The stock fell 24% on its first day, and within six months it was trading under a dollar.",
+   "why_it_matters": "The corporate peak and the start of the fall. Lapsed fans often say this is when FaZe stopped feeling like FaZe.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_nasdaq_2022",
+    "name": "Ticker Tape",
+    "rarity": "common"
+   },
+   "verified": true,
+   "date": "2022-07-20",
+   "sources": [
+    "https://www.musicbusinessworldwide.com/faze-clan-goes-public-on-nasdaq-share-price-falls-24-in-first-day-of-trading",
+    "https://centennialworld.com/snoop-dogg-resigns-from-faze-clan-board-of-directors-amid-organisations-financial-struggles/"
+   ],
+   "sensitive": true
+  },
+  {
+   "id": "l_snoop_leaves_board",
+   "era": "2022_snoop",
+   "year": 2023,
+   "title": "Snoop leaves the board",
+   "people": [
+    "Snoop Dogg"
+   ],
+   "summary": "About a year after joining, Snoop Dogg resigned from FaZe's board as the company's finances got worse.",
+   "why_it_matters": "The celebrity era ended, which set up the return of the founders.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_snoop_leaves_board",
+    "name": "Empty Board Seat",
+    "rarity": "common"
+   },
+   "verified": true,
+   "date": "2023-04",
+   "sources": [
+    "https://pcgamer.com/snoop-dogg-was-so-eager-to-quit-faze-clans-board-that-he-may-have-dumped-around-214k-shares-to-do-it"
+   ],
+   "sensitive": true
+  },
+  {
+   "id": "l_gamesquare_founders_return",
+   "era": "today",
+   "year": 2024,
+   "title": "The founders come home",
+   "people": [
+    "Banks",
+    "Temperrr",
+    "Apex"
+   ],
+   "summary": "GameSquare announced its deal to acquire FaZe in October 2023 and closed it in March 2024. Banks returned as CEO, Temperrr as president and Apex as COO.",
+   "why_it_matters": "Old FaZe members came back to run the clan they had built. In Odyssey terms, the founders returned to Ithaca.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_gamesquare_founders_return",
+    "name": "The Homecoming Key",
+    "rarity": "legendary"
+   },
+   "verified": true,
+   "date": "2024-03-08",
+   "sources": [
+    "https://comicbook.com/gaming/news/faze-clan-bought-by-gamesquare",
+    "https://www.si.com/esports/news/faze-clan-acquired-by-gamesquare-faze-banks-returns"
+   ]
+  },
+  {
+   "id": "l_reboot_2024",
+   "era": "today",
+   "year": 2024,
+   "title": "The reboot",
+   "people": [
+    "Banks"
+   ],
+   "summary": "On April 27, 2024, Banks relaunched FaZe and cut the creator roster down to 14 members. The relaunch drew an estimated 350 million social impressions.",
+   "why_it_matters": "This is proof that nostalgia for FaZe moves real numbers. ITHACA is built to keep that return going instead of letting it fade after one week.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_reboot_2024",
+    "name": "2024 Reboot Hoodie",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2024-04-27",
+   "find_video": "FaZe Clan reboot announcement April 2024",
+   "sources": [
+    "https://netinfluencer.com/gamesquare-holdings-faze-media-faze-banks",
+    "https://esports.gg/news/gaming/faze-clan-reboot-layoffs-and-esports-updates"
+   ]
+  },
+  {
+   "id": "l_esports_first_2026",
+   "era": "today",
+   "year": 2026,
+   "title": "FaZe goes esports-first",
+   "people": [],
+   "summary": "Most of the creator roster left at the end of 2025. FaZe closed its creator division from January 1, 2026 and said its esports division would be the main focus.",
+   "why_it_matters": "FaZe today is mostly its teams. Fans who drifted away may not know that.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_esports_first_2026",
+    "name": "Esports Crest 2026",
+    "rarity": "common"
+   },
+   "verified": true,
+   "date": "2026-01-01",
+   "sources": [
+    "https://streamer.guide/blog/faze-clan-closes-creator-division-2026",
+    "https://www.dust2.us/news/69124/faze-to-focus-on-esports-in-2026-after-dramatic-exodus-of-top-influencers-content-creators"
+   ],
+   "sensitive": true
+  },
+  {
+   "id": "l_six_invitational_2026",
+   "era": "today",
+   "year": 2026,
+   "title": "Six Invitational 2026",
+   "people": [],
+   "summary": "FaZe's Rainbow Six Siege team won the Six Invitational 2026 in Paris.",
+   "why_it_matters": "FaZe is still winning major titles. New fans can start following a team that wins.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_six_invitational_2026",
+    "name": "Six Invitational Ring",
+    "rarity": "legendary"
+   },
+   "verified": false,
+   "date": "2026-02",
+   "find_video": "FaZe Six Invitational 2026 winning moment",
+   "sources": [
+    "https://www.cbinsights.com/company/wanderset",
+    "https://siege.gg/lan/faze-clan-unveil-new-academy-program-called-faze-up-next"
+   ],
+   "verify_note": "Two secondary mentions only. Confirm on siege.gg or Liquipedia."
+  },
+  {
+   "id": "l_faze_up_next",
+   "era": "today",
+   "year": 2026,
+   "title": "FaZe Up Next",
+   "people": [],
+   "summary": "In April 2026 FaZe announced FaZe Up Next, an academy program for developing future stars.",
+   "why_it_matters": "FaZe is recruiting new talent again. ITHACA's Bow Trial could feed straight into this academy.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_faze_up_next",
+    "name": "FaZe Up Next Badge",
+    "rarity": "rare"
+   },
+   "verified": true,
+   "date": "2026-04",
+   "sources": [
+    "https://siege.gg/lan/faze-clan-unveil-new-academy-program-called-faze-up-next"
+   ]
+  },
+  {
+   "id": "l_today_ithaca",
+   "era": "today",
+   "year": 2026,
+   "title": "Your road home",
+   "people": [],
+   "summary": "Fans old and new come back to FaZe through Ithaca: the Bard, the Oracle and the Bow Trial.",
+   "why_it_matters": "The story keeps going, and now you're in it.",
+   "video_id": null,
+   "start_s": 0,
+   "end_s": null,
+   "relic": {
+    "id": "r_ithaca_key",
+    "name": "Key to Ithaca",
+    "rarity": "common"
+   },
+   "verified": false,
+   "_product": "Not historical lore: ITHACA's own closing chapter (kept from A's starter seed)."
+  }
+ ],
+ "video_index": [
+  {
+   "video_id": "REPLACE_ME",
+   "channel": "FaZe Clan",
+   "title": "example",
+   "published_at": "2012-01-01",
+   "views": 0,
+   "era": "2010_trickshots"
+  }
+ ],
+ "faze_channels": [
+  "Atlanta FaZe",
+  "FaZe Adapt",
+  "FaZe Apex",
+  "FaZe Banks",
+  "FaZe Clan",
+  "FaZe Jarvis",
+  "FaZe Kaysan",
+  "FaZe Rug",
+  "FaZe Sniping",
+  "FaZe Swagg",
+  "FaZe Swan",
+  "FaZe Temperrr"
+ ]
 }

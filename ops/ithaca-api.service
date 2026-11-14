@@ -1,0 +1,15 @@
+[Unit]
+Description=ITHACA API (FastAPI / uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ithaca
+WorkingDirectory=__APP_DIR__/backend
+EnvironmentFile=/etc/ithaca.env
+ExecStart=__APP_DIR__/.venv/bin/uvicorn __APP_MODULE__ --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

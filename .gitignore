@@ -9,3 +9,5 @@ node_modules/
 dist/
 .pytest_cache/
 backend/static/recaps/
+.DS_Store
+*.zip

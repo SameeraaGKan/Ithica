@@ -146,7 +146,8 @@ def _lore_for(video_id: str, t: int, channel: Optional[str]) -> tuple[bool, Opti
     is_faze = bool(e or meta or (channel and any(c.lower() in channel.lower() for c in ["faze"] + L.faze_channels)))
     if not e and is_faze:
         pool = L.for_era(meta["era"]) if meta and meta.get("era") else []
-        pool = pool or sorted(L.entries, key=lambda x: x["id"])
+        pool = [x for x in pool if not x.get("sensitive")] or pool
+        pool = pool or sorted([x for x in L.entries if not x.get("sensitive")] or L.entries, key=lambda x: x["id"])
         e = pool[zlib.crc32(video_id.encode()) % len(pool)]
     return is_faze, e
 

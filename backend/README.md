@@ -66,13 +66,15 @@ Demo fan: `demo_odysseus` (returning fan, Rug era, two relics) is always seeded.
 ## Ingest (YouTube Data API)
 
 ```bash
-python -m scripts.ingest_youtube --handle @FaZeClan --handle @FaZeRug --max 200
+python -m scripts.ingest_youtube            # top videos + video_id suggestions per lore entry
+python -m scripts.ingest_youtube --write    # also save uploads into lore_seed.json video_index
+python -m scripts.load_lore                 # push lore + video_index to Atlas
 ```
-Pulls uploads (title, date, views, era by year) into `video_index` (seed JSON + Atlas). Siren uses it to recognize FaZe videos.
+D's script (stdlib only). Channel via `FAZE_HANDLE` (default `@FaZeClan`).
 
 ## Recap, Twitch, transcripts (P1)
 
-- **Recap**: needs `ffmpeg` on the box (`setup_vm.sh` installs it). Narration uses Gemini + ElevenLabs when keyed.
+- **Recap**: needs `ffmpeg` on the box (`ops/vultr_setup.sh` installs it). Narration uses Gemini + ElevenLabs when keyed.
 - **Twitch**: set `TWITCH_CLIENT_ID/SECRET/EVENTSUB_SECRET`, then `python -m scripts.twitch_subscribe --broadcaster <you> --bot-user <you>`. OBS browser source: `/twitch/overlay`. Streamer control (camera + buttons): `/twitch/overlay?control=1&key=<ITHACA_API_KEY>`. No stream handy? Queue challengers manually from the control page.
 - **Transcripts**: `python -m scripts.ingest_transcript --video-id <id> --captions file.vtt` (or `--audio clip.mp3` → Whisper if `faster-whisper` is installed, else Gemini). Siren context then returns `transcript`, and Ask the Bard uses it as a source.
 
@@ -86,18 +88,21 @@ Eras: `2010_trickshots`, `2013_rug_era`, `2020_nuke_squad`, `2022_snoop`, `today
 
 ## Lore
 
-`data/lore_seed.json` is a **starter seed** (12 entries, `verified: false`, no video IDs yet). D replaces it with the curated 25–30 entries from the FaZe timeline, then reruns `scripts.load_lore`. The Bard prompt is told to use only facts in the lore, so the lore is the accuracy ceiling.
+`data/lore_seed.json` is D's curated lore: 31 sourced entries with `verified` and `sensitive` flags. `video_id`s are still to fill (see Ingest). After edits run `ops/sync_lore.sh`. The Bard prompt is told to use only facts in the lore, so the lore is the accuracy ceiling.
 
 ## Deploy (Vultr)
 
+D's scripts in `ops/` (see `docs/siren-data-ops.md`):
+
 ```bash
-# once, on a fresh Ubuntu VM as root
-bash deploy/setup_vm.sh https://github.com/SameeraaGKan/Ithica.git
-# edit /opt/ithica/backend/.env and the domain in /etc/caddy/Caddyfile, then any time:
-bash /opt/ithica/backend/deploy/deploy.sh sameeraa      # one-command redeploy (any branch)
+# once, on a fresh Ubuntu VM as root (DNS A record for api.<domain> first)
+DOMAIN=api.yourdomain.com bash ops/vultr_setup.sh
+nano /etc/ithaca.env && systemctl restart ithaca-api
+# every redeploy
+sudo bash /opt/ithaca/ops/redeploy.sh
 ```
 
-systemd keeps it alive, Caddy does HTTPS. Stays at 1 worker because of the in-memory fallback store.
+Caddy does HTTPS, systemd keeps uvicorn alive (1 worker, because of the in-memory fallback store). `ops/sync_lore.sh` copies edited lore into the extension and reloads Atlas.
 
 ## Not built (P1/P2, by the plan's cut order)
 

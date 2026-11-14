@@ -1,87 +1,100 @@
-"""Ingest worker: pull FaZe channel uploads (titles, dates, views) via YouTube Data API v3
-into video_index. Writes to Atlas if MONGODB_URI is set, and always into data/lore_seed.json.
+"""Pull every upload from the FaZe Clan channel, print the most-viewed videos, and
+suggest a video_id for each lore entry that doesn't have one. Stdlib only.
 
-Usage (from backend/):  python -m scripts.ingest_youtube --handle @FaZeClan --max 200
-Repeat --handle for more channels. Needs YOUTUBE_API_KEY."""
+Run from backend/:
+    export YOUTUBE_API_KEY="..."
+    python -m scripts.ingest_youtube            # print top videos + suggestions
+    python -m scripts.ingest_youtube --write    # also save uploads into lore_seed.json `video_index`
+    python -m scripts.load_lore                 # then push lore + video_index to Atlas
+
+Quota: ~1 unit per 50 videos (playlistItems) + 1 per 50 (videos.list). ~2k uploads ≈ 80 units.
+Review suggestions by eye, then paste video_id + start_s/end_s into data/lore_seed.json and set verified=true.
+"""
 import argparse
-import asyncio
 import json
+import os
+import pathlib
+import re
+import sys
+import urllib.parse
+import urllib.request
 
-import httpx
+SEED = pathlib.Path(__file__).resolve().parent.parent / "data" / "lore_seed.json"
+API = "https://www.googleapis.com/youtube/v3/"
+HANDLE = os.environ.get("FAZE_HANDLE", "@FaZeClan")
 
-from app.config import get_settings
-from app.services.classify import era_for_year
-
-API = "https://www.googleapis.com/youtube/v3"
-
-
-async def channel_uploads(c: httpx.AsyncClient, key: str, handle: str) -> tuple[str, str]:
-    r = await c.get(f"{API}/channels", params={"part": "contentDetails,snippet", "forHandle": handle, "key": key})
-    r.raise_for_status()
-    items = r.json().get("items") or []
-    if not items:
-        raise SystemExit(f"channel not found: {handle}")
-    ch = items[0]
-    return ch["snippet"]["title"], ch["contentDetails"]["relatedPlaylists"]["uploads"]
+# Same era ids as app/schemas.py ERAS
+ERA_BY_YEAR = [(2012, "2010_trickshots"), (2019, "2013_rug_era"), (2021, "2020_nuke_squad"), (2023, "2022_snoop"), (9999, "today")]
 
 
-async def playlist_video_ids(c: httpx.AsyncClient, key: str, playlist: str, limit: int) -> list[str]:
-    ids, token = [], None
-    while len(ids) < limit:
-        r = await c.get(f"{API}/playlistItems", params={"part": "contentDetails", "playlistId": playlist, "maxResults": 50,
-                                                        "pageToken": token, "key": key})
-        r.raise_for_status()
-        j = r.json()
-        ids += [i["contentDetails"]["videoId"] for i in j.get("items", [])]
-        token = j.get("nextPageToken")
+def era_for(year):
+    return next(e for y, e in ERA_BY_YEAR if year <= y)
+
+
+def get(path, **params):
+    params["key"] = os.environ["YOUTUBE_API_KEY"]
+    with urllib.request.urlopen(API + path + "?" + urllib.parse.urlencode(params), timeout=30) as r:
+        return json.load(r)
+
+
+def uploads():
+    ch = get("channels", part="contentDetails,snippet", forHandle=HANDLE)["items"][0]
+    pl = ch["contentDetails"]["relatedPlaylists"]["uploads"]
+    print(f"channel: {ch['snippet']['title']}  uploads playlist: {pl}", file=sys.stderr)
+    token = None
+    while True:
+        page = get("playlistItems", part="contentDetails", playlistId=pl, maxResults=50,
+                   **({"pageToken": token} if token else {}))
+        ids = [i["contentDetails"]["videoId"] for i in page["items"]]
+        if ids:
+            for v in get("videos", part="snippet,statistics", id=",".join(ids))["items"]:
+                pub = v["snippet"]["publishedAt"]
+                yield {
+                    "video_id": v["id"], "channel": ch["snippet"]["title"],
+                    "title": v["snippet"]["title"], "published_at": pub[:10],
+                    "views": int(v["statistics"].get("viewCount", 0)),
+                    "era": era_for(int(pub[:4])),
+                }
+        token = page.get("nextPageToken")
         if not token:
-            break
-    return ids[:limit]
+            return
 
 
-async def video_details(c: httpx.AsyncClient, key: str, ids: list[str], channel: str) -> list[dict]:
-    out = []
-    for i in range(0, len(ids), 50):
-        r = await c.get(f"{API}/videos", params={"part": "snippet,statistics", "id": ",".join(ids[i:i + 50]), "key": key})
-        r.raise_for_status()
-        for v in r.json().get("items", []):
-            pub = v["snippet"]["publishedAt"][:10]
-            out.append({"video_id": v["id"], "channel": channel, "title": v["snippet"]["title"], "published_at": pub,
-                        "views": int(v.get("statistics", {}).get("viewCount", 0)), "era": era_for_year(int(pub[:4]))})
-    return out
+def tokens(s):
+    return set(re.findall(r"[a-z0-9]+", (s or "").lower())) - {"faze", "clan", "the", "a", "of"}
 
 
-async def main(handles: list[str], limit: int) -> None:
-    s = get_settings()
-    assert s.youtube_api_key, "YOUTUBE_API_KEY missing"
-    videos: list[dict] = []
-    async with httpx.AsyncClient(timeout=20) as c:
-        for h in handles:
-            title, uploads = await channel_uploads(c, s.youtube_api_key, h)
-            ids = await playlist_video_ids(c, s.youtube_api_key, uploads, limit)
-            got = await video_details(c, s.youtube_api_key, ids, title)
-            print(f"{title}: {len(got)} videos")
-            videos += got
-    seed = json.loads(s.lore_seed_path.read_text(encoding="utf-8"))
-    merged = {v["video_id"]: v for v in seed.get("video_index", []) if v.get("video_id") != "REPLACE_ME"}
-    merged.update({v["video_id"]: v for v in videos})
-    seed["video_index"] = sorted(merged.values(), key=lambda v: -v["views"])
-    chans = set(seed.get("faze_channels", [])) | {v["channel"] for v in videos}
-    seed["faze_channels"] = sorted(chans)
-    s.lore_seed_path.write_text(json.dumps(seed, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"video_index now {len(seed['video_index'])} videos; top: {seed['video_index'][0]['title']!r} "
-          f"({seed['video_index'][0]['views']:,} views)")
-    if s.has_mongo:
-        from motor.motor_asyncio import AsyncIOMotorClient
-        db = AsyncIOMotorClient(s.mongodb_uri)[s.mongodb_db]
-        for v in videos:
-            await db.video_index.replace_one({"video_id": v["video_id"]}, v, upsert=True)
-        print("upserted into Atlas video_index")
+def suggest(videos, lore):
+    for e in lore["lore_entries"]:
+        if e.get("video_id") or not e.get("find_video"):
+            continue
+        want = tokens(e["find_video"])
+        cands = [v for v in videos if abs(int(v["published_at"][:4]) - e["year"]) <= 1] or videos
+        best = sorted(cands, key=lambda v: (len(want & tokens(v["title"])), v["views"]), reverse=True)[:3]
+        print(f"\n{e['id']}  ({e['year']})  looking for: {e['find_video']}")
+        for v in best:
+            print(f"   {v['video_id']}  {v['published_at'][:10]}  {v['views']:>11,}  {v['title']}")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--write", action="store_true", help="save uploads into lore_seed.json video_index")
+    a = ap.parse_args()
+    if not os.environ.get("YOUTUBE_API_KEY"):
+        sys.exit("missing YOUTUBE_API_KEY")
+    videos = list(uploads())
+    print(f"fetched {len(videos)} videos", file=sys.stderr)
+    top = sorted(videos, key=lambda v: v["views"], reverse=True)[:5]
+    print("\nMost-viewed (check the pitch's 12.1M claim here):")
+    for v in top:
+        print(f"   {v['views']:>11,}  {v['published_at'][:10]}  {v['title']}  https://youtu.be/{v['video_id']}")
+    seed = json.loads(SEED.read_text(encoding="utf-8"))
+    if a.write:
+        seed["video_index"] = videos
+        SEED.write_text(json.dumps(seed, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"wrote {len(videos)} videos to {SEED.name} video_index", file=sys.stderr)
+    suggest(videos, seed)
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--handle", action="append", default=None)
-    ap.add_argument("--max", type=int, default=200)
-    a = ap.parse_args()
-    asyncio.run(main(a.handle or ["@FaZeClan"], a.max))
+    main()

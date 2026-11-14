@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Siren</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="lyre" aria-hidden="true">♪</span>
+      <div>
+        <div class="name">THE SIREN</div>
+        <div class="sub">ITHACA · FaZe lore, live</div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="drachmae" title="Drachmae"><span class="coin" aria-hidden="true">◎</span><span id="drachmae">0</span></div>
+      <button id="settingsBtn" class="icon" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+  <div id="status" class="status"><span class="dot"></span><span id="statusText">Connecting…</span></div>
+
+  <main>
+    <section id="idle" class="panel empty">
+      <p class="big">Play a FaZe video.</p>
+      <p>Open any FaZe video on YouTube or Twitch and the Siren will tell you the story behind it.</p>
+    </section>
+
+    <section id="notfaze" class="panel empty hidden">
+      <p class="big">This isn't a FaZe video.</p>
+      <p>The Siren only sings for FaZe. <span id="notfazeChannel"></span></p>
+    </section>
+
+    <section id="lore" class="panel hidden">
+      <div class="era"><span id="eraLabel"></span><span class="sep">·</span><span id="eraOdyssey"></span></div>
+      <div id="loreKind" class="kind">Lore at this moment</div>
+      <h1 id="loreTitle"></h1>
+      <div id="lorePeople" class="people"></div>
+      <p id="loreSummary" class="summary"></p>
+      <div class="why">
+        <div class="label">Why it matters</div>
+        <p id="loreWhy"></p>
+      </div>
+      <button id="jumpBtn" class="ghost hidden">▶ Jump to this moment</button>
+
+      <div id="relic" class="relic">
+        <div class="relicInfo">
+          <div class="label">Relic</div>
+          <div id="relicName"></div>
+          <div id="relicRarity" class="rarity"></div>
+        </div>
+        <button id="collectBtn" class="gold">Collect Relic</button>
+      </div>
+
+      <button id="askBtn" class="ghost wide">🎙 Ask the Bard about this</button>
+    </section>
+
+    <section id="more" class="panel hidden">
+      <div class="label">More from this era</div>
+      <ul id="moreList"></ul>
+    </section>
+  </main>
+
+  <dialog id="settings">
+    <form method="dialog">
+      <h2>Settings</h2>
+      <label>API base <input id="apiBase" type="url" placeholder="https://api.example.com"></label>
+      <label>Ithaca Hub URL <input id="webBase" type="url" placeholder="https://example.com"></label>
+      <label>Fan ID <input id="fan" type="text" placeholder="demo_odysseus"></label>
+      <p class="hint">If the API doesn't answer within 2.5s, the Siren uses its built-in lore so the demo keeps working.</p>
+      <menu><button value="cancel" class="ghost">Cancel</button><button id="saveSettings" value="save" class="gold">Save</button></menu>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>
