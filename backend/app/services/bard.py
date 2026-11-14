@@ -104,3 +104,38 @@ async def episode(*, era: str, path: str, topic: Optional[str] = None, voice: bo
         _cache[key] = ep
         _save_cache()
     return ep
+
+
+# ------------------------------------------------------------------ Ask the Bard (extension push-to-talk, agent)
+ASK_SYSTEM = BARD_SYSTEM.split("Rules:")[0] + """Rules:
+- Answer the fan's question in 2-4 short spoken sentences (under 70 words). No markdown.
+- Use ONLY facts in the provided LORE. If the lore doesn't cover it, say the songs don't tell of that yet, and offer what you do know.
+- If they're watching a video, tie the answer to what's on screen when the lore allows."""
+
+
+class _Ask(BaseModel):
+    answer: str
+    used_lore_ids: list[str]
+
+
+async def ask(question: str, *, video_id: Optional[str] = None, t: Optional[int] = None, voice: bool = True):
+    from app.schemas import AskResponse
+
+    L = lore()
+    hits = await L.search(question, k=4)
+    here = L.at_timestamp(video_id, t or 0) if video_id else None
+    if here and here["id"] not in {h["id"] for h in hits}:
+        hits = [here] + hits[:3]
+    lore_block = json.dumps([{k: e.get(k) for k in ("id", "year", "title", "people", "summary", "why_it_matters")} for e in hits], indent=1)
+    on_screen = f"They are watching: {here['title']} ({here['year']}).\n" if here else ""
+    res = await gemini.generate_json(f"{on_screen}QUESTION: {question}\n\nLORE:\n{lore_block}", _Ask, system=ASK_SYSTEM,
+                                     timeout=8, temperature=0.5)
+    by = "gemini"
+    if res is None or not res.answer.strip():
+        top = hits[0] if hits else None
+        res = _Ask(answer=(f"The songs tell of this: {top['title']}. {top['summary']} {top['why_it_matters']}" if top
+                           else "The songs don't tell of that yet, traveler."),
+                   used_lore_ids=[top["id"]] if top else [])
+        by = "template"
+    audio = await tts.narrate(res.answer) if voice else None
+    return AskResponse(answer=res.answer, audio_url=audio, lore_ids=res.used_lore_ids, generated_by=by)

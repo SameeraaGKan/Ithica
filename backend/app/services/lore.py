@@ -26,8 +26,12 @@ def _cos(a: list[float], b: list[float]) -> float:
     return dot / (na * nb)
 
 
+STOP = set("a an the is are was were be to of in on at for and or but who what when where why how did does do it its this "
+           "that with as by from about me my your you i we they he she them his her their faze clan tell".split())
+
+
 def _tokens(s: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", s.lower()))
+    return {t for t in re.findall(r"[a-z0-9]+", s.lower()) if t not in STOP}
 
 
 class LoreStore:
@@ -101,7 +105,10 @@ class LoreStore:
                 ranked = sorted(pool, key=lambda e: -_cos(qv[0], self._local_vecs[idx[e["id"]]]))
                 return ranked[:k]
         q = _tokens(query)
-        ranked = sorted(pool, key=lambda e: (-len(q & _tokens(entry_text(e))), e["year"]))
+        docs = {e["id"]: _tokens(entry_text(e)) for e in self.entries}
+        n = len(docs)
+        idf = {t: math.log(1 + n / (1 + sum(t in d for d in docs.values()))) for t in q}
+        ranked = sorted(pool, key=lambda e: (-sum(idf[t] for t in q & docs[e["id"]]), e["year"]))
         return ranked[:k]
 
     def for_era(self, era: str) -> list[dict]:

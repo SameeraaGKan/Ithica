@@ -1,0 +1,5 @@
+# /etc/caddy/Caddyfile on the Vultr VM. Replace the domain (GoDaddy DNS: A record api -> VM IP).
+api.YOURDOMAIN.xyz {
+    encode gzip
+    reverse_proxy 127.0.0.1:8000
+}

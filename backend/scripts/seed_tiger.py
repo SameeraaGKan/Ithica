@@ -27,6 +27,12 @@ async def main() -> None:
                                                          for e in mem.events], columns=["ts", "fan_id", "type", "source", "meta"])
         await c.executemany("INSERT INTO purchases(fan_id, sku, amount_cents, ts) VALUES($1,$2,$3,$4)",
                             [(p["fan_id"], p["sku"], p["amount_cents"], p["ts"]) for p in mem.purchases])
+        trial = await pg.current_trial()
+        await c.execute("DELETE FROM trial_entries WHERE fan_id LIKE 'sim_%'")
+        await c.executemany("INSERT INTO trial_entries(trial_id, fan_id, score, verdict, ts) VALUES($1,$2,$3,$4,$5)",
+                            [(trial["id"], e["fan_id"], e["score"], e["verdict"], e["ts"]) for e in mem.trial_entries])
+        await c.executemany("UPDATE fans SET handle=$2 WHERE id=$1",
+                            [(f["id"], f["handle"]) for f in mem.fans.values() if f.get("handle")])
     print(f"seeded {len(mem.fans)} sim fans, {len(mem.events)} events, {len(mem.purchases)} purchases")
 
 

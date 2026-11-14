@@ -4,12 +4,14 @@ import logging
 import re
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
-from app.schemas import (ERA_LABELS, ERAS, ClassifyRequest, ClassifyResponse, CollectRequest, CollectResponse,
+from app.auth import check_fan, fan_token, require_service_key
+
+from app.schemas import (ERA_LABELS, ERAS, AskRequest, AskResponse, Omen, OmenAnswer, OmenResult, ClassifyRequest, ClassifyResponse, CollectRequest, CollectResponse,
                          EpisodeRequest, EpisodeResponse, EraNode, OdysseyResponse, OracleVerdict, RelicOut,
                          SirenContext)
-from app.services import bard, oracle
+from app.services import bard, omen, oracle
 from app.services.classify import bard_line, classify
 from app.services.lore import lore
 from app.services.store import PRICES, award, relic_catalog, store
@@ -30,7 +32,7 @@ async def onboard_classify(req: ClassifyRequest):
     path, era, games, reason = await classify(req)
     await st.update_fan(fan["id"], path=path, entry_era=era, games=games or None)
     await award(fan["id"], "onboard", "web", {"path": path, "era": era})
-    return ClassifyResponse(fan_id=fan["id"], path=path, entry_era=era, games=games, reason=reason,
+    return ClassifyResponse(fan_id=fan["id"], fan_token=fan_token(fan["id"]), path=path, entry_era=era, games=games, reason=reason,
                             bard_line=bard_line(path, era, fan.get("handle")))
 
 
@@ -56,7 +58,7 @@ async def odyssey(fan_id: str):
     order = ERAS[entry_i:] + ERAS[:entry_i] if fan.get("path") == "odysseus" else ERAS
     next_era = next((n.era for n in sorted(nodes, key=lambda n: order.index(n.era)) if n.relics_collected < n.relics_total), entry or "today")
     return OdysseyResponse(fan_id=fan_id, handle=fan.get("handle"), path=fan.get("path"), entry_era=entry,
-                           drachmae=fan.get("drachmae", 0), map=nodes, relics=[_relic_out(r) for r in mine],
+                           drachmae=fan.get("drachmae", 0), has_pass=bool(fan.get("has_pass")), map=nodes, relics=[_relic_out(r) for r in mine],
                            next_episode={"era": next_era, "path": fan.get("path") or "telemachus", "label": ERA_LABELS[next_era]})
 
 
@@ -103,6 +105,7 @@ async def _read_frame(request: Request) -> tuple[bytes, str, dict]:
                          "mode = argos | bow_trial. Frames are processed in memory and discarded.")
 async def oracle_frame(request: Request):
     data, mime, f = await _read_frame(request)
+    check_fan(f.get("fan_id") or None, request.headers.get("authorization"))
     if not data:
         raise HTTPException(422, "empty image")
     mode = f.get("mode", "argos")
@@ -113,7 +116,7 @@ async def oracle_frame(request: Request):
 
 
 # ------------------------------------------------------------- chert (B wires the exact payload)
-@router.post("/chert/webhook", tags=["chert"])
+@router.post("/chert/webhook", tags=["chert"], dependencies=[Depends(require_service_key)])
 async def chert_webhook(request: Request):
     """Placeholder until we see Chert's real payload. If it carries an image + mode, we judge it
     and return `say` text. B: adapt the field names here once Chert docs are in hand."""
@@ -159,7 +162,8 @@ async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional
 
 
 @router.post("/siren/collect", response_model=CollectResponse, tags=["siren"])
-async def siren_collect(req: CollectRequest):
+async def siren_collect(req: CollectRequest, authorization: Optional[str] = Header(default=None)):
+    check_fan(req.fan_id, authorization)
     L, st = lore(), store()
     e = L.by_id.get(req.lore_id) if req.lore_id else _lore_for(req.video_id, req.t, "faze")[1]
     relic, already = (None, False)
@@ -181,24 +185,73 @@ async def warroom_metrics(days: int = Query(14, ge=1, le=90)):
 
 
 @router.post("/pass/checkout", tags=["warroom"], description="Mocked checkout. sku = odyssey_pass | era_drop:<era>")
-async def checkout(fan_id: str, sku: str = "odyssey_pass"):
+async def checkout(fan_id: str, sku: str = "odyssey_pass", authorization: Optional[str] = Header(default=None)):
+    check_fan(fan_id, authorization)
     base = sku.split(":")[0]
     if base not in PRICES:
         raise HTTPException(422, "unknown sku")
+    if base == "odyssey_pass":
+        await store().set_pass(fan_id)
     await store().record_purchase(fan_id, sku, PRICES[base])
     await store().log_event(fan_id, "purchase", "web", {"sku": sku})
     return {"ok": True, "sku": sku, "amount_cents": PRICES[base], "mock": True}
 
 
 # ------------------------------------------------------------- ElevenLabs agent tools (B)
-@router.post("/tools/classify_fan", response_model=ClassifyResponse, tags=["agent-tools"])
+@router.post("/tools/classify_fan", response_model=ClassifyResponse, tags=["agent-tools"], dependencies=[Depends(require_service_key)])
 async def tool_classify(req: ClassifyRequest):
     return await onboard_classify(req)
 
 
-@router.post("/tools/get_lore", tags=["agent-tools"])
+@router.post("/tools/get_lore", tags=["agent-tools"], dependencies=[Depends(require_service_key)])
 async def tool_get_lore(payload: dict):
     """Body: {query, era?}. Returns short text the voice agent can read from."""
     hits = await lore().search(payload.get("query") or "FaZe history", era=payload.get("era"), k=3)
     return {"answer": " ".join(f"{h['title']} ({h['year']}): {h['summary']} {h['why_it_matters']}" for h in hits),
             "lore_ids": [h["id"] for h in hits]}
+
+
+# ------------------------------------------------------------- ask the bard (extension push-to-talk)
+@router.post("/bard/ask", response_model=AskResponse, tags=["bard"],
+             description="Grounded Q&A. Extension: send the transcribed question + current videoId/t.")
+async def bard_ask(req: AskRequest):
+    res = await bard.ask(req.question, video_id=req.video_id, t=req.t, voice=req.voice)
+    if req.fan_id:
+        await store().log_event(req.fan_id, "ask_bard", "ext" if req.video_id else "web", {"q": req.question[:200]})
+    return res
+
+
+# ------------------------------------------------------------- trials + suitors leaderboard
+@router.get("/trials/current", tags=["trials"])
+async def trials_current():
+    t = await store().current_trial()
+    return {**t, "pass_score": oracle.BOW_PASS, "relic_id": oracle.BOW_RELIC}
+
+
+@router.get("/trials/leaderboard", tags=["trials"])
+async def trials_leaderboard(trial_id: Optional[str] = None, limit: int = Query(10, ge=1, le=100)):
+    t = await store().current_trial()
+    tid = trial_id or t["id"]
+    return {"trial_id": tid, "sponsor": t.get("sponsor") if tid == t["id"] else None,
+            "suitors": await store().leaderboard(tid, limit)}
+
+
+@router.post("/trials/current", tags=["trials"], dependencies=[Depends(require_service_key)],
+             description="Admin: set this week's sponsor and prompt (the Sponsored Trials revenue line).")
+async def trials_set(sponsor: Optional[str] = None, prompt: Optional[str] = None):
+    t = await store().set_trial(sponsor, prompt)
+    if sponsor:
+        await store().record_purchase(None, f"sponsored_trial:{sponsor}", PRICES["sponsored_trial"])
+    return t
+
+
+# ------------------------------------------------------------- daily omen (P1, iMessage via B)
+@router.get("/omen/today", response_model=Omen, tags=["omen"])
+async def omen_today():
+    return omen.today_omen()[0]
+
+
+@router.post("/omen/answer", response_model=OmenResult, tags=["omen"])
+async def omen_answer(req: OmenAnswer, authorization: Optional[str] = Header(default=None)):
+    check_fan(req.fan_id, authorization)
+    return await omen.answer(req.fan_id, req.answer)

@@ -1,0 +1,14 @@
+# /etc/systemd/system/ithaca.service
+[Unit]
+Description=ITHACA API
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/ithica/backend
+EnvironmentFile=/opt/ithica/backend/.env
+ExecStart=/opt/ithica/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

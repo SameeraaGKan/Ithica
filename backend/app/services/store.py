@@ -14,8 +14,31 @@ from app.schemas import ERAS
 
 log = logging.getLogger("ithaca.store")
 
-DRACHMAE = {"relic": 25, "watch": 1, "trial_entry": 50, "oracle_argos": 40, "onboard": 100, "episode_play": 10}
+DRACHMAE = {"omen": 50, "relic": 25, "watch": 1, "trial_entry": 50, "oracle_argos": 40, "onboard": 100, "episode_play": 10}
 PRICES = {"odyssey_pass": 499, "era_drop": 3500, "sponsored_trial": 250000}
+
+
+DEFAULT_TRIAL_PROMPT = "String the bow: show the Oracle your cleanest trickshot."
+SUITORS = ["Antinous", "Eurymachus", "Amphinomus", "Ctesippus", "Leodes"]
+DEMO_FAN_ID = "demo_odysseus"
+
+
+def week_start():
+    d = datetime.now(timezone.utc).date()
+    return d - timedelta(days=d.weekday())
+
+
+async def seed_demo_fan(st) -> None:
+    """A ready-made returning fan for the demo (fan_id=demo_odysseus)."""
+    if await st.get_fan(DEMO_FAN_ID) and (await st.get_fan(DEMO_FAN_ID)).get("path"):
+        return
+    await st.upsert_fan(DEMO_FAN_ID, handle="Odysseus")
+    await st.update_fan(DEMO_FAN_ID, path="odysseus", entry_era="2013_rug_era", games=["Warzone", "Fortnite"])
+    for rid in ("r_1m_plaque", "r_rug_camera"):
+        relic, already = await st.grant_relic(DEMO_FAN_ID, rid, via="seed")
+        if relic and not already:
+            await st.log_event(DEMO_FAN_ID, "relic", "web", {"era": relic["era"], "relic_id": rid})
+    await st.add_drachmae(DEMO_FAN_ID, 340)
 
 
 def now() -> datetime:
@@ -49,9 +72,49 @@ class MemoryStore:
         self.events: list[dict] = []
         self.fan_relics: dict[str, dict[str, dict]] = defaultdict(dict)
         self.purchases: list[dict] = []
+        self.trials: dict[str, dict] = {}
+        self.trial_entries: list[dict] = []
 
     async def init(self) -> None:
         self._simulate_history()
+        await seed_demo_fan(self)
+
+    # ---- trials (the Bow Trial + Suitors leaderboard)
+    async def current_trial(self) -> dict:
+        week = week_start()
+        tid = f"trial_{week.isoformat()}"
+        if tid not in self.trials:
+            self.trials[tid] = {"id": tid, "week": week.isoformat(), "sponsor": None, "prompt": DEFAULT_TRIAL_PROMPT}
+        return self.trials[tid]
+
+    async def set_trial(self, sponsor: Optional[str], prompt: Optional[str]) -> dict:
+        t = await self.current_trial()
+        if sponsor is not None:
+            t["sponsor"] = sponsor or None
+        if prompt:
+            t["prompt"] = prompt
+        return t
+
+    async def add_trial_entry(self, trial_id: str, fan_id: str, score: int, verdict: str, clip_url: Optional[str] = None) -> None:
+        self.trial_entries.append({"trial_id": trial_id, "fan_id": fan_id, "score": score, "verdict": verdict,
+                                   "clip_url": clip_url, "ts": now()})
+
+    async def leaderboard(self, trial_id: str, limit: int = 10) -> list[dict]:
+        best: dict[str, dict] = {}
+        for e in self.trial_entries:
+            if e["trial_id"] == trial_id and (e["fan_id"] not in best or e["score"] > best[e["fan_id"]]["score"]):
+                best[e["fan_id"]] = e
+        rows = sorted(best.values(), key=lambda e: (-e["score"], e["ts"]))[:limit]
+        out = []
+        for i, e in enumerate(rows, 1):
+            f = self.fans.get(e["fan_id"], {})
+            out.append({"rank": i, "fan_id": e["fan_id"], "handle": f.get("handle") or e["fan_id"], "score": e["score"],
+                        "verdict": e["verdict"], "simulated": bool(f.get("simulated"))})
+        return out
+
+    async def set_pass(self, fan_id: str) -> None:
+        f = await self.upsert_fan(fan_id)
+        f["has_pass"] = True
 
     async def get_fan(self, fan_id: str) -> Optional[dict]:
         return self.fans.get(fan_id)
@@ -62,7 +125,8 @@ class MemoryStore:
             fan_id = next((f["id"] for f in self.fans.values() if f["phone_hash"] == ph), None)
         fan_id = fan_id or f"fan_{uuid.uuid4().hex[:10]}"
         f = self.fans.get(fan_id) or {"id": fan_id, "handle": None, "phone_hash": None, "path": None,
-                                       "entry_era": None, "games": [], "drachmae": 0, "created_at": now().isoformat()}
+                                       "entry_era": None, "games": [], "drachmae": 0, "has_pass": False,
+                                       "created_at": now().isoformat()}
         if handle:
             f["handle"] = handle
         if ph:
@@ -143,6 +207,13 @@ class MemoryStore:
     # simulated history so the War Room isn't empty (labelled simulated=True)
     def _simulate_history(self, days: int = 14, seed: int = 7) -> None:
         rng = random.Random(seed)
+        tid = f"trial_{week_start().isoformat()}"
+        for j, name in enumerate(SUITORS):
+            fid = f"sim_suitor_{j}"
+            self.fans[fid] = {"id": fid, "handle": name, "phone_hash": None, "path": "telemachus", "entry_era": "today",
+                              "games": [], "drachmae": 0, "has_pass": False, "created_at": now().isoformat(), "simulated": True}
+            self.trial_entries.append({"trial_id": tid, "fan_id": fid, "score": 88 - j * 6 + rng.randint(-2, 2),
+                                       "verdict": "simulated suitor", "clip_url": None, "ts": now() - timedelta(hours=j + 1)})
         cat = list(relic_catalog().values())
         t0 = now() - timedelta(days=days - 1)
         fan_seq = 0
@@ -195,10 +266,48 @@ class PgStore(MemoryStore):
         self.pool = await asyncpg.create_pool(self.dsn, min_size=1, max_size=5, command_timeout=8,
                                               init=lambda c: c.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"))
         async with self.pool.acquire() as c:
+            await c.execute("ALTER TABLE fans ADD COLUMN IF NOT EXISTS has_pass BOOLEAN NOT NULL DEFAULT false")
             for r in relic_catalog().values():
                 await c.execute("INSERT INTO relics(id, era, name, rarity, art_url) VALUES($1,$2,$3,$4,$5) "
                                 "ON CONFLICT (id) DO UPDATE SET era=EXCLUDED.era, name=EXCLUDED.name, rarity=EXCLUDED.rarity",
                                 r["id"], r["era"], r["name"], r["rarity"], r.get("art_url"))
+        await seed_demo_fan(self)
+
+    async def current_trial(self) -> dict:
+        week = week_start()
+        tid = f"trial_{week.isoformat()}"
+        async with self.pool.acquire() as c:
+            await c.execute("INSERT INTO trials(id, week, prompt) VALUES($1,$2,$3) ON CONFLICT DO NOTHING", tid, week, DEFAULT_TRIAL_PROMPT)
+            r = dict(await c.fetchrow("SELECT * FROM trials WHERE id=$1", tid))
+        r["week"] = r["week"].isoformat()
+        return r
+
+    async def set_trial(self, sponsor, prompt) -> dict:
+        t = await self.current_trial()
+        async with self.pool.acquire() as c:
+            await c.execute("UPDATE trials SET sponsor=COALESCE($2, sponsor), prompt=COALESCE($3, prompt) WHERE id=$1",
+                            t["id"], sponsor, prompt or None)
+        return await self.current_trial()
+
+    async def add_trial_entry(self, trial_id, fan_id, score, verdict, clip_url=None) -> None:
+        async with self.pool.acquire() as c:
+            await c.execute("INSERT INTO trial_entries(trial_id, fan_id, score, verdict, clip_url) VALUES($1,$2,$3,$4,$5)",
+                            trial_id, fan_id, score, verdict, clip_url)
+
+    async def leaderboard(self, trial_id: str, limit: int = 10) -> list[dict]:
+        async with self.pool.acquire() as c:
+            rows = await c.fetch("""
+                SELECT DISTINCT ON (te.fan_id) te.fan_id, te.score, te.verdict, te.ts, f.handle
+                FROM trial_entries te LEFT JOIN fans f ON f.id = te.fan_id
+                WHERE te.trial_id=$1 ORDER BY te.fan_id, te.score DESC, te.ts""", trial_id)
+        rows = sorted(rows, key=lambda r: (-(r["score"] or 0), r["ts"]))[:limit]
+        return [{"rank": i, "fan_id": r["fan_id"], "handle": r["handle"] or r["fan_id"], "score": r["score"],
+                 "verdict": r["verdict"], "simulated": r["fan_id"].startswith("sim_")} for i, r in enumerate(rows, 1)]
+
+    async def set_pass(self, fan_id: str) -> None:
+        await self.upsert_fan(fan_id)
+        async with self.pool.acquire() as c:
+            await c.execute("UPDATE fans SET has_pass=true WHERE id=$1", fan_id)
 
     @staticmethod
     def _fan(row) -> Optional[dict]:

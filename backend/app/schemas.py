@@ -30,6 +30,7 @@ class ClassifyRequest(BaseModel):
 
 class ClassifyResponse(BaseModel):
     fan_id: str
+    fan_token: str  # send as Authorization: Bearer <fan_token>
     path: Path_
     entry_era: Era
     games: list[str]
@@ -63,6 +64,7 @@ class OdysseyResponse(BaseModel):
     path: Optional[Path_]
     entry_era: Optional[Era]
     drachmae: int
+    has_pass: bool = False
     map: list[EraNode]
     relics: list[RelicOut]
     next_episode: dict
@@ -111,6 +113,13 @@ class OracleVerdict(BaseModel):
     drachmae_awarded: int = 0
     fallback: bool = False
     latency_ms: int = 0
+    # bow trial extras
+    trial_id: Optional[str] = None
+    sponsor: Optional[str] = None
+    rank: Optional[int] = None
+    # for B: iMessage follow-up (Chert) after the call
+    imessage_text: Optional[str] = None
+    share_url: Optional[str] = None
 
 
 # ---------- siren ----------
@@ -134,3 +143,41 @@ class CollectResponse(BaseModel):
     drachmae_awarded: int
     drachmae_total: int
     already_had: bool
+
+
+# ---------- ask the bard ----------
+class AskRequest(BaseModel):
+    question: str
+    fan_id: Optional[str] = None
+    video_id: Optional[str] = None
+    t: Optional[int] = None
+    voice: bool = True
+
+
+class AskResponse(BaseModel):
+    answer: str
+    audio_url: Optional[str]
+    lore_ids: list[str]
+    generated_by: Literal["gemini", "template"]
+
+
+# ---------- daily omen ----------
+class Omen(BaseModel):
+    date: str
+    omen_id: str
+    question: str
+    reward: int
+    lore_id: str
+    imessage_text: str
+
+
+class OmenAnswer(BaseModel):
+    fan_id: str
+    answer: str
+
+
+class OmenResult(BaseModel):
+    correct: bool
+    reply: str
+    drachmae_awarded: int
+    already_answered: bool = False

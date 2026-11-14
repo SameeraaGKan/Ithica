@@ -30,7 +30,17 @@ class Settings(BaseSettings):
     # Tiger Data (Postgres + Timescale)
     tiger_dsn: str = ""
 
+    # YouTube Data API v3 (ingest worker)
+    youtube_api_key: str = ""
+
+    # Auth: ITHACA_API_KEY guards server-to-server routes (agent tools, Chert webhook, admin) when set.
+    # Fans get an HMAC-signed token from onboarding; enforced on fan routes only if REQUIRE_FAN_TOKEN=true.
+    ithaca_api_key: str = ""
+    token_secret: str = "dev-secret-change-me"
+    require_fan_token: bool = False
+
     # Behaviour
+    hub_base_url: str = "http://localhost:3000"      # C's Next.js hub, for iMessage links
     public_base_url: str = "http://localhost:8000"   # set to https://api.<domain> on Vultr
     oracle_timeout_s: float = 6.0
     bard_timeout_s: float = 20.0

@@ -9,7 +9,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.schemas import OracleVerdict, RelicOut
+from app.schemas import ERA_LABELS, OracleVerdict, RelicOut
 from app.services import gemini
 from app.services.lore import lore
 from app.services.store import award, store
@@ -57,6 +57,25 @@ BOW_PASS = 70
 BOW_RELIC = "r_swagg_bow"
 
 
+def _imessage(v: OracleVerdict, fan_id: Optional[str]) -> None:
+    """Result card text for B to send over iMessage (Chert) after the FaceTime."""
+    s = get_settings()
+    v.share_url = f"{s.hub_base_url.rstrip('/')}/odyssey/{fan_id}" if fan_id else s.hub_base_url
+    lines = ["🏛️ The Oracle has spoken."]
+    if v.mode == "argos" and v.era:
+        lines.append(f"Era recognized: {ERA_LABELS.get(v.era, v.era)}. Welcome home.")
+    if v.mode == "bow_trial" and v.score is not None:
+        sponsor = f" (presented by {v.sponsor})" if v.sponsor else ""
+        rank = f" · #{v.rank} among the suitors" if v.rank else ""
+        lines.append(f"Bow Trial{sponsor}: {v.score}/100{rank}.")
+    if v.relic:
+        lines.append(f"Relic earned: {v.relic.name} ({v.relic.rarity}).")
+    if v.drachmae_awarded:
+        lines.append(f"+{v.drachmae_awarded} Drachmae.")
+    lines.append(f"Your Odyssey: {v.share_url}")
+    v.imessage_text = "\n".join(lines)
+
+
 def _era_relic(era: str) -> Optional[str]:
     for e in lore().for_era(era):
         if e.get("relic"):
@@ -102,6 +121,8 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
                           confidence=1.0 if not fallback else 0.0, reasons=res.reasons, spoken=res.spoken, fallback=fallback)
         relic_id = BOW_RELIC if v.recognized and res.score >= BOW_PASS else None
         event, drach = "trial_entry", 50 if v.recognized else 0
+        trial = await store().current_trial()
+        v.trial_id, v.sponsor = trial["id"], trial.get("sponsor")
 
     if fan_id:
         st = store()
@@ -112,10 +133,18 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
                 if not already:
                     await st.log_event(fan_id, "relic", source, {"era": relic["era"], "relic_id": relic_id})
                     drach += 25
-        await award(fan_id, event, source, {"mode": mode, "era": v.era, "score": v.score, "fallback": fallback}, drachmae=drach)
+        await award(fan_id, event, source, {"mode": mode, "era": v.era, "score": v.score, "fallback": fallback,
+                                            "trial_id": v.trial_id, "sponsor": v.sponsor}, drachmae=drach)
         v.drachmae_awarded = drach
         if mode == "argos" and v.era:
             await st.update_fan(fan_id, entry_era=(await st.get_fan(fan_id) or {}).get("entry_era") or v.era)
+        if mode == "bow_trial" and v.recognized:
+            await st.add_trial_entry(v.trial_id, fan_id, v.score or 0, v.spoken)
+            board = await st.leaderboard(v.trial_id, limit=100)
+            v.rank = next((r["rank"] for r in board if r["fan_id"] == fan_id), None)
+            if v.sponsor:
+                await st.log_event(fan_id, "sponsored_impression", source, {"sponsor": v.sponsor, "trial_id": v.trial_id})
+    _imessage(v, fan_id)
 
     v.latency_ms = int((time.perf_counter() - t0) * 1000)
     return v

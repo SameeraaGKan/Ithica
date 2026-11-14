@@ -7,3 +7,4 @@ backend/static/audio/*.mp3
 node_modules/
 .next/
 dist/
+.pytest_cache/

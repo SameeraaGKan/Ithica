@@ -42,6 +42,9 @@ async def health():
         "elevenlabs": s.has_elevenlabs,
         "lore_backend": lore().backend, "lore_entries": len(lore().entries),
         "store_backend": store().kind,
+        "youtube_ingest": bool(s.youtube_api_key),
+        "service_key_enforced": bool(s.ithaca_api_key),
+        "fan_token_enforced": s.require_fan_token,
     }
 
 

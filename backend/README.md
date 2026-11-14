@@ -41,8 +41,36 @@ Before the demo: `python -m scripts.pregen_episodes` caches every era × path ep
 | POST | `/chert/webhook` | **B** | placeholder: adapt to Chert's real payload; returns `{say}` |
 | GET | `/siren/context?videoId=&t=&channel=` | **D** extension | lore at this moment + relic available |
 | POST | `/siren/collect` | **D** extension | `{fan_id, video_id, t, lore_id}` (pass `lore_id` from context) |
+| POST | `/bard/ask` | **D** extension push-to-talk / Hub | `{question, video_id?, t?, fan_id?}` → grounded answer + `audio_url` |
+| GET | `/trials/current` | **C** Hub | this week's Bow Trial: prompt, sponsor, pass score |
+| GET | `/trials/leaderboard` | **C** Hub | the Suitors: best score per fan (simulated suitors flagged) |
+| POST | `/trials/current?sponsor=&prompt=` | admin (service key) | set the sponsored trial; logs the sponsorship revenue |
+| GET | `/omen/today` | **B** (P1) | daily quest + ready-to-send `imessage_text` |
+| POST | `/omen/answer` | **B** (P1) | `{fan_id, answer}` → `{correct, reply, drachmae_awarded}` |
 | GET | `/warroom/metrics?days=14` | **C** War Room | totals, revenue by stream, era-drop demand, daily series; `simulated` flag |
 | POST | `/pass/checkout?fan_id=&sku=` | **C** | mocked Odyssey Pass / Era Drop purchase |
+
+Oracle verdicts include `imessage_text` + `share_url`. **B** sends those over Chert iMessage after the call. Bow Trial verdicts also carry `trial_id`, `sponsor`, `rank`.
+
+Demo fan: `demo_odysseus` (returning fan, Rug era, two relics) is always seeded.
+
+## Auth
+
+- **Service key**: set `ITHACA_API_KEY` and server-to-server callers (ElevenLabs agent tools, Chert webhook, admin) must send `X-Ithaca-Key`. Unset = open (dev).
+- **Fan token**: onboarding returns `fan_token`. Clients send `Authorization: Bearer <fan_token>`. Enforced on fan writes (Oracle, collect, checkout, omen) only with `REQUIRE_FAN_TOKEN=true`. Leave it off for the demo unless C wires it.
+
+## Ingest (YouTube Data API)
+
+```bash
+python -m scripts.ingest_youtube --handle @FaZeClan --handle @FaZeRug --max 200
+```
+Pulls uploads (title, date, views, era by year) into `video_index` (seed JSON + Atlas). Siren uses it to recognize FaZe videos.
+
+## Tests
+
+```bash
+pytest -q
+```
 
 Eras: `2010_trickshots`, `2013_rug_era`, `2020_nuke_squad`, `2022_snoop`, `today`. Paths: `odysseus`, `telemachus`.
 
@@ -53,8 +81,14 @@ Eras: `2010_trickshots`, `2013_rug_era`, `2020_nuke_squad`, `2022_snoop`, `today
 ## Deploy (Vultr)
 
 ```bash
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1   # behind Caddy: reverse_proxy localhost:8000
+# once, on a fresh Ubuntu VM as root
+bash deploy/setup_vm.sh https://github.com/SameeraaGKan/Ithica.git
+# edit /opt/ithica/backend/.env and the domain in /etc/caddy/Caddyfile, then any time:
+bash /opt/ithica/backend/deploy/deploy.sh sameeraa      # one-command redeploy (any branch)
 ```
 
-Keep `--workers 1` while using the in-memory store.
+systemd keeps it alive, Caddy does HTTPS. Stays at 1 worker because of the in-memory fallback store.
+
+## Not built (P1/P2, by the plan's cut order)
+
+Recap video (FFmpeg), Whisper transcripts, Twitch EventSub live trials, Grok suitor commentator, Solana relics.
