@@ -1,1 +1,2 @@
 # Ithica
+//ITHACA is a voice-first lore and trials platform that brings lapsed FaZe fans home (Odysseus) and gives new fans the legend they missed (Telemachus). You talk to a bard that sings your personal FaZe history, you FaceTime an Oracle that sees your old merch or judges your trickshot live, and a Chrome extension (the Siren) turns every FaZe YouTube/Twitch video into a lore-and-relics layer. A CTO "War Room" shows FaZe how it makes money.
