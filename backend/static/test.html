@@ -69,7 +69,7 @@
   <div class="row">
     <label>mode</label><select id="orMode"><option value="argos">argos (show merch)</option><option value="bow_trial">bow_trial (trickshot)</option></select>
     <input type="file" id="orFile" accept="image/*"> <button onclick="oracleFile()">Judge upload</button>
-    <button class="sec" onclick="camOn()">Webcam</button> <button class="sec" onclick="oracleCam()">Judge webcam frame</button>
+    <button class="sec" id="camBtn" onclick="camToggle()">Webcam on</button> <button class="sec" onclick="oracleCam()">Judge webcam frame</button>
   </div>
   <video id="cam" autoplay playsinline muted style="display:none;width:320px;transform:scaleX(-1)"></video>
   <div id="orOut"></div>
@@ -183,7 +183,17 @@ function oracleFile() { run('orOut', async () => {
   const fd = new FormData(); fd.append('image', f); fd.append('mode', $('orMode').value); if (fan()) fd.append('fan_id', fan());
   return verdictHtml(await call('POST', '/oracle/frame', fd, true));
 }); }
-function camOn() { navigator.mediaDevices.getUserMedia({ video: true }).then(s => { $('cam').srcObject = s; $('cam').style.display = 'block'; }); }
+function camToggle() {
+  const v = $('cam'), btn = $('camBtn');
+  if (v.srcObject) {  // turn off: stop every track so the camera light goes off
+    v.srcObject.getTracks().forEach(t => t.stop());
+    v.srcObject = null; v.style.display = 'none'; btn.textContent = 'Webcam on';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(s => { v.srcObject = s; v.style.display = 'block'; btn.textContent = 'Webcam off'; })
+    .catch(e => { $('orOut').innerHTML = `<pre style="color:#b00">Camera unavailable: ${esc(e.message)}</pre>`; });
+}
 function oracleCam() { run('orOut', async () => {
   const v = $('cam'); if (!v.srcObject) throw new Error('turn on the webcam first');
   const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);

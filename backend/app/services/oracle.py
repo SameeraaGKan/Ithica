@@ -91,7 +91,11 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
 
     if mode == "argos":
         prompt = (f"Mode: ARGOS REMEMBERS. The fan is showing you something from their FaZe past (merch, a poster, their setup). "
-                  f"Identify the FaZe era it comes from and welcome them home by naming that era.\n{ERA_GUIDE}\n"
+                  f"Identify the FaZe era it comes from and welcome them home by naming that era.\n"
+                  f"BE STRICT: faze_related is true ONLY if a FaZe logo (the stylized red 'F' / FaZe wordmark) or clearly FaZe "
+                  f"merchandise is actually visible. Other hoodies, logos, people, rooms or screens are NOT FaZe. If nothing FaZe is "
+                  f"visible, set faze_related=false, confidence below 0.2, and make the spoken line a gentle, in-character request to "
+                  f"hold their FaZe relic up to the light. Never pretend to see a logo that isn't there.\n{ERA_GUIDE}\n"
                   f"Extra context: {context or 'none'}")
         res = await gemini.generate_json(prompt, _Argos, images=[(image, mime)], system=ORACLE_SYSTEM,
                                          timeout=s.oracle_timeout_s, temperature=0.4)

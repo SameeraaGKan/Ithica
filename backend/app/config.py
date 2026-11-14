@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Gemini (AI Studio)
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"          # bump to newest Flash at the event
+    gemini_model: str = "gemini-3.5-flash"
     gemini_embed_model: str = "gemini-embedding-001"
     embed_dim: int = 768
 
