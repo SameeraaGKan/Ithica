@@ -24,7 +24,7 @@ export interface Relic {
   id: string;
   era: EraId;
   name: string;
-  rarity: "common" | "rare" | "legendary";
+  rarity: "common" | "rare" | "epic" | "legendary";
   art_url?: string;
   earned_at?: string;
   via?: "web" | "ext" | "facetime" | "imessage";

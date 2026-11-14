@@ -12,7 +12,7 @@ import type {
   WarroomMetrics,
 } from "./types";
 
-export const DEMO_FAN_ID = process.env.NEXT_PUBLIC_DEMO_FAN_ID || "demo-odysseus";
+export const DEMO_FAN_ID = process.env.NEXT_PUBLIC_DEMO_FAN_ID || "demo_odysseus";
 
 // Deterministic PRNG so the charts look the same on every reload.
 function rng(seed: number) {

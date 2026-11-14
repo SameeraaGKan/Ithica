@@ -151,3 +151,19 @@ def test_captions_parse():
 def test_test_page(c):
     r = c.get("/test")
     assert r.status_code == 200 and "API test page" in r.text
+
+
+def test_hub_contract(c):
+    """Fields the Next.js Hub (frontend/) relies on."""
+    o = c.get("/odyssey/demo_odysseus").json()
+    assert "locked_relics" in o and "games" in o and o["locked_relics"]
+    before = len(o["relics"])
+    col = c.post("/siren/collect", json={"fan_id": "demo_odysseus"}).json()  # Hub demo button: no video
+    assert col["relic"] and not col["already_had"]
+    assert len(c.get("/odyssey/demo_odysseus").json()["relics"]) == before + 1
+    rid = o["locked_relics"][-1]["id"]
+    assert c.post("/siren/collect", json={"fan_id": "demo_odysseus", "relic_id": rid}).json()["relic"]["id"] == rid
+    m = c.get("/warroom/metrics").json()
+    assert m["funnel"] and "generated_at" in m and {"pass_cents", "drops_cents", "sponsored_cents"} <= set(m["daily"][0])
+    lb = c.get("/trials/leaderboard").json()["suitors"]
+    assert "path" in lb[0] and "drachmae" in lb[0]

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { API_BASE } from "@/lib/api";
 
 // Health check page (plan: Robustness). Pings each endpoint the Hub depends on.
-const CHECKS = ["/odyssey/demo-odysseus", "/warroom/metrics", "/leaderboard"];
+const CHECKS = ["/health", "/odyssey/demo_odysseus", "/warroom/metrics", "/trials/leaderboard"];
 
 export default function Health() {
   const [results, setResults] = useState<Record<string, string>>({});

@@ -112,7 +112,8 @@ class MemoryStore:
         for i, e in enumerate(rows, 1):
             f = self.fans.get(e["fan_id"], {})
             out.append({"rank": i, "fan_id": e["fan_id"], "handle": f.get("handle") or e["fan_id"], "score": e["score"],
-                        "verdict": e["verdict"], "simulated": bool(f.get("simulated"))})
+                        "verdict": e["verdict"], "simulated": bool(f.get("simulated")),
+                        "path": f.get("path"), "drachmae": f.get("drachmae", 0)})
         return out
 
     async def set_pass(self, fan_id: str) -> None:
@@ -201,11 +202,24 @@ class MemoryStore:
                 for d, b in sorted(daily.items())]
         rev = defaultdict(int)
         passes = 0
+        day_rev: dict[str, dict] = defaultdict(lambda: defaultdict(int))
         for p in self.purchases:
             stream = p["sku"].split(":")[0]
             rev[stream] += p["amount_cents"]
             passes += stream == "odyssey_pass"
-        return _assemble(rows, dict(rev), passes, dict(era_demand), len(self.fans), simulated=True, backend=self.kind)
+            if p["ts"].date() in daily:
+                day_rev[p["ts"].date().isoformat()][stream] += p["amount_cents"]
+        for r in rows:
+            dr = day_rev.get(r["day"], {})
+            r.update(pass_cents=dr.get("odyssey_pass", 0), drops_cents=dr.get("era_drop", 0), sponsored_cents=dr.get("sponsored_trial", 0))
+        by_type: dict[str, set] = defaultdict(set)
+        for e in self.events:
+            if e["fan_id"] and e["ts"].date() in daily:
+                by_type[e["type"]].add(e["fan_id"])
+        buyers = {p["fan_id"] for p in self.purchases if p["fan_id"] and p["sku"] == "odyssey_pass" and p["ts"].date() in daily}
+        funnel = _funnel(len(by_type["onboard"]), len(by_type["episode_play"]), len(by_type["relic"]),
+                         len(by_type["trial_entry"]), len(buyers))
+        return _assemble(rows, dict(rev), passes, dict(era_demand), len(self.fans), simulated=True, backend=self.kind, funnel=funnel)
 
     # simulated history so the War Room isn't empty (labelled simulated=True)
     def _simulate_history(self, days: int = 14, seed: int = 7) -> None:
@@ -300,12 +314,13 @@ class PgStore(MemoryStore):
     async def leaderboard(self, trial_id: str, limit: int = 10) -> list[dict]:
         async with self.pool.acquire() as c:
             rows = await c.fetch("""
-                SELECT DISTINCT ON (te.fan_id) te.fan_id, te.score, te.verdict, te.ts, f.handle
+                SELECT DISTINCT ON (te.fan_id) te.fan_id, te.score, te.verdict, te.ts, f.handle, f.path, f.drachmae
                 FROM trial_entries te LEFT JOIN fans f ON f.id = te.fan_id
                 WHERE te.trial_id=$1 ORDER BY te.fan_id, te.score DESC, te.ts""", trial_id)
         rows = sorted(rows, key=lambda r: (-(r["score"] or 0), r["ts"]))[:limit]
         return [{"rank": i, "fan_id": r["fan_id"], "handle": r["handle"] or r["fan_id"], "score": r["score"],
-                 "verdict": r["verdict"], "simulated": r["fan_id"].startswith("sim_")} for i, r in enumerate(rows, 1)]
+                 "verdict": r["verdict"], "simulated": r["fan_id"].startswith("sim_"),
+                 "path": r["path"], "drachmae": r["drachmae"] or 0} for i, r in enumerate(rows, 1)]
 
     async def set_pass(self, fan_id: str) -> None:
         await self.upsert_fan(fan_id)
@@ -391,6 +406,13 @@ class PgStore(MemoryStore):
             era = {r["era"]: r["n"] for r in await c.fetch(
                 "SELECT meta->>'era' AS era, count(*) AS n FROM events WHERE type='relic' AND ts >= $1 AND meta ? 'era' GROUP BY 1", since)}
             fans = await c.fetchval("SELECT count(*) FROM fans")
+            day_rev = {}
+            for r in await c.fetch("SELECT date_trunc('day', ts)::date AS d, split_part(sku, ':', 1) AS stream, sum(amount_cents)::bigint AS cents "
+                                   "FROM purchases WHERE ts >= $1 GROUP BY 1, 2", since):
+                day_rev.setdefault(r["d"].isoformat(), {})[r["stream"]] = int(r["cents"])
+            ft = {r["type"]: r["n"] for r in await c.fetch(
+                "SELECT type, count(DISTINCT fan_id) AS n FROM events WHERE ts >= $1 AND fan_id IS NOT NULL GROUP BY 1", since)}
+            buyers = await c.fetchval("SELECT count(DISTINCT fan_id) FROM purchases WHERE sku='odyssey_pass' AND ts >= $1", since)
             simulated = await c.fetchval("SELECT EXISTS(SELECT 1 FROM events WHERE meta->>'simulated'='true' AND ts >= $1)", since)
         start = since.date()
         rows = []
@@ -400,15 +422,29 @@ class PgStore(MemoryStore):
             rows.append({"day": d.isoformat(), "active_fans": e.get("active_fans", 0), "reactivated": r.get("reactivated", 0),
                          "new_fans": r.get("new_fans", 0), "trial_entries": t.get("trial_entries", 0), "relics": e.get("relics", 0),
                          "episodes": e.get("episodes", 0), "sponsored_impressions": e.get("sponsored_impressions", 0)})
-        return _assemble(rows, {k: int(v) for k, v in rev.items()}, passes, era, fans, simulated=bool(simulated), backend=self.kind)
+        for r in rows:
+            dr = day_rev.get(r["day"], {})
+            r.update(pass_cents=dr.get("odyssey_pass", 0), drops_cents=dr.get("era_drop", 0), sponsored_cents=dr.get("sponsored_trial", 0))
+        funnel = _funnel(ft.get("onboard", 0), ft.get("episode_play", 0), ft.get("relic", 0), ft.get("trial_entry", 0), buyers)
+        return _assemble(rows, {k: int(v) for k, v in rev.items()}, passes, era, fans, simulated=bool(simulated), backend=self.kind,
+                         funnel=funnel)
 
 
-def _assemble(rows, rev, passes, era_demand, fans, *, simulated, backend) -> dict:
+def _funnel(onboarded, episodes, relics, trials, passes) -> list[dict]:
+    # ordered widest to narrowest so each step reads as a drop-off
+    return [{"stage": "Onboarded with the Bard", "count": onboarded}, {"stage": "Collected a relic", "count": relics},
+            {"stage": "Played a Bard episode", "count": episodes}, {"stage": "Entered a Bow Trial", "count": trials},
+            {"stage": "Bought the Odyssey Pass", "count": passes}]
+
+
+def _assemble(rows, rev, passes, era_demand, fans, *, simulated, backend, funnel=None) -> dict:
     tot = lambda k: sum(r[k] for r in rows)
     reactivated, new = tot("reactivated"), tot("new_fans")
     return {
         "simulated": simulated,
         "backend": backend,
+        "generated_at": now().isoformat(),
+        "funnel": funnel or [],
         "window_days": len(rows),
         "totals": {
             "fans": fans,

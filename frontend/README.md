@@ -42,3 +42,16 @@ The backend needs CORS allowing the Hub's origin.
 - **B (voice):** give me the ElevenLabs Agent ID, and add a client tool `show_odyssey({fan_id})` to the agent so the Bard can route the fan to their map.
 - **D (lore):** real FaZe `video_id` + `start_s`/`end_s` per episode; relic names/eras to match the lore JSON.
 - **Demo audio:** put the pre-generated Bard episode at `public/audio/demo-episode.mp3`.
+
+## Running against the real backend
+
+```bash
+# terminal 1 (from backend/)
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
+# terminal 2 (from frontend/)
+echo NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 > .env.local
+npm install
+npm run dev        # http://localhost:3000
+```
+
+`lib/api.ts` adapts the backend's responses (`backend/app/schemas.py`) to the Hub types in `lib/types.ts`, including era ids (`2013_rug_era` → `2013_rug`, `2020_nuke_squad` → `2020_nuke`). Each page's badge says **Live** when the data came from the backend and **Mock** when it fell back. `/health` checks every endpoint the Hub uses.

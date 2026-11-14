@@ -62,7 +62,7 @@ export default function WarRoom() {
         <div>
           <p className="eyebrow">War Room · Board view</p>
           <h1 className="font-display text-4xl font-black">How Ithaca earns</h1>
-          <p className="mt-1 text-sm text-muted">Last 30 days · refreshes every 5s · updated {new Date(data.generated_at).toLocaleTimeString()}</p>
+          <p className="mt-1 text-sm text-muted">Last {data.daily.length} days · refreshes every 5s · updated {new Date(data.generated_at).toLocaleTimeString()}</p>
         </div>
         <div className="flex gap-2">
           {data.simulated && <SourceBadge source={source} simulated />}

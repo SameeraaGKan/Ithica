@@ -1,6 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { api } from "@/lib/api";
+import { DEMO_FAN_ID } from "@/lib/mocks";
 
 const PERKS = [
   "Premium Bard episodes for every era",
@@ -44,9 +46,10 @@ export default function Pass() {
           <button
             className="btn btn-gold mt-8 w-full py-3 text-base"
             disabled={state === "processing"}
-            onClick={() => {
+            onClick={async () => {
               setState("processing");
-              setTimeout(() => setState("done"), 1200);
+              await Promise.all([api.checkout(DEMO_FAN_ID), new Promise((r) => setTimeout(r, 900))]);
+              setState("done");
             }}
           >
             {state === "processing" ? "Processing…" : "Claim the Pass"}

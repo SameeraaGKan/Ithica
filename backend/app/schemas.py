@@ -65,8 +65,10 @@ class OdysseyResponse(BaseModel):
     entry_era: Optional[Era]
     drachmae: int
     has_pass: bool = False
+    games: list[str] = Field(default_factory=list)
     map: list[EraNode]
     relics: list[RelicOut]
+    locked_relics: list[RelicOut] = Field(default_factory=list)
     next_episode: dict
 
 
@@ -134,9 +136,10 @@ class SirenContext(BaseModel):
 
 class CollectRequest(BaseModel):
     fan_id: str
-    video_id: str
+    video_id: str = "web"          # extension sends the YouTube id; the Hub may omit it
     t: int = 0
     lore_id: Optional[str] = None
+    relic_id: Optional[str] = None  # Hub: claim a specific relic; omitted on web = next uncollected
 
 
 class CollectResponse(BaseModel):

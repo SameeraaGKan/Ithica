@@ -6,6 +6,7 @@ import type { Relic } from "@/lib/types";
 const RARITY = {
   common: "border-line text-muted",
   rare: "border-sky-500/50 text-sky-300",
+  epic: "border-purple-500/60 text-purple-300",
   legendary: "border-gold text-gold",
 } as const;
 

@@ -58,7 +58,9 @@ async def odyssey(fan_id: str):
     order = ERAS[entry_i:] + ERAS[:entry_i] if fan.get("path") == "odysseus" else ERAS
     next_era = next((n.era for n in sorted(nodes, key=lambda n: order.index(n.era)) if n.relics_collected < n.relics_total), entry or "today")
     return OdysseyResponse(fan_id=fan_id, handle=fan.get("handle"), path=fan.get("path"), entry_era=entry,
-                           drachmae=fan.get("drachmae", 0), has_pass=bool(fan.get("has_pass")), map=nodes, relics=[_relic_out(r) for r in mine],
+                           drachmae=fan.get("drachmae", 0), has_pass=bool(fan.get("has_pass")), games=fan.get("games") or [],
+                           map=nodes, relics=[_relic_out(r) for r in mine],
+                           locked_relics=[_relic_out(r) for r in sorted(cat, key=lambda r: ERAS.index(r["era"])) if r["id"] not in have],
                            next_episode={"era": next_era, "path": fan.get("path") or "telemachus", "label": ERA_LABELS[next_era]})
 
 
@@ -169,7 +171,20 @@ async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional
 async def siren_collect(req: CollectRequest, authorization: Optional[str] = Header(default=None)):
     check_fan(req.fan_id, authorization)
     L, st = lore(), store()
-    e = L.by_id.get(req.lore_id) if req.lore_id else _lore_for(req.video_id, req.t, "faze")[1]
+    if req.relic_id:
+        e = next((x for x in L.entries if (x.get("relic") or {}).get("id") == req.relic_id), None)
+    elif req.lore_id:
+        e = L.by_id.get(req.lore_id)
+    elif req.video_id == "web":
+        # Hub demo button: next relic this fan hasn't got, starting from their entry era
+        fan = await st.get_fan(req.fan_id) or {}
+        have = {r["id"] for r in await st.list_fan_relics(req.fan_id)}
+        start = ERAS.index(fan["entry_era"]) if fan.get("entry_era") in ERAS else 0
+        order = ERAS[start:] + ERAS[:start]
+        e = next((x for era in order for x in L.for_era(era)
+                  if x.get("relic") and x["relic"]["id"] not in have and not x.get("sensitive")), None)
+    else:
+        e = _lore_for(req.video_id, req.t, "faze")[1]
     relic, already = (None, False)
     gained = 0
     if e and e.get("relic"):
