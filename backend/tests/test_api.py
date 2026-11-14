@@ -146,3 +146,8 @@ def test_captions_parse():
     segs = parse_captions(vtt)
     assert [x.text for x in segs] == ["yo we hit 1 million", "thank you guys"]
     assert chunk(segs)[0]["start_s"] == 1
+
+
+def test_test_page(c):
+    r = c.get("/test")
+    assert r.status_code == 200 and "API test page" in r.text

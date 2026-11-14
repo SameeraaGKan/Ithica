@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITHACA · API test page</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 0 auto; padding: 20px; background:#fafafa; color:#111; }
+  h1 { margin: 0 0 4px; } .sub { color:#666; margin-bottom: 16px; }
+  section { background:#fff; border:1px solid #ddd; border-radius:10px; padding:14px 16px; margin:12px 0; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  label { font-size: 13px; color:#444; margin-right: 6px; }
+  input, select, button { font: inherit; padding: 6px 10px; border:1px solid #bbb; border-radius:6px; margin: 2px 4px 2px 0; }
+  button { background:#111; color:#fff; border-color:#111; cursor:pointer; } button.sec { background:#fff; color:#111; }
+  button:disabled { opacity:.5; }
+  pre { background:#f3f3f3; padding:10px; border-radius:6px; max-height:260px; overflow:auto; font-size:12px; white-space:pre-wrap; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; margin:2px; border:1px solid #ccc; }
+  .ok { background:#e6f6ea; border-color:#9bd3a8; } .no { background:#fdecec; border-color:#f0a8a8; }
+  .map { display:flex; gap:6px; flex-wrap:wrap; } .era { border:1px solid #ccc; border-radius:8px; padding:8px; min-width:140px; font-size:13px; }
+  .era.entry { border:2px solid #e41b23; } .era.locked { opacity:.45; }
+  .say { font-size: 17px; font-style: italic; margin: 8px 0; }
+  table { border-collapse: collapse; font-size: 13px; } td, th { border:1px solid #ddd; padding:4px 8px; text-align:left; }
+  #fanbar { position: sticky; top: 0; background:#fafafa; padding: 8px 0; z-index: 2; border-bottom:1px solid #ddd; }
+  video, iframe { max-width: 100%; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>ITHACA · API test page</h1>
+<div class="sub">For testing the backend only; the real UI is C's Hub. Every call shows its raw JSON.</div>
+
+<div id="fanbar" class="row">
+  <b>Fan:</b> <input id="fan" size="22" placeholder="fan_id"> <button class="sec" onclick="useDemo()">Use demo_odysseus</button>
+  <span id="health"></span>
+</div>
+
+<section>
+  <h2>1 · Onboard (what the Bard's tool call sends)</h2>
+  <div class="row">
+    <label>handle</label><input id="handle" value="sam" size="10">
+    <label>first found FaZe (year)</label><input id="year" value="2012" size="6">
+    <label>favorite member</label><input id="member" placeholder="Apex" size="10">
+    <label>games</label><input id="games" placeholder="Warzone, Fortnite" size="16">
+  </div>
+  <div class="row"><label>or transcript</label><input id="transcript" size="60" placeholder="I found FaZe in 2011 watching trickshots..."></div>
+  <button onclick="onboard()">Classify</button>
+  <div id="onboardOut"></div>
+</section>
+
+<section>
+  <h2>2 · Odyssey Map</h2>
+  <button onclick="odyssey()">Load map</button>
+  <div id="mapOut"></div>
+</section>
+
+<section>
+  <h2>3 · The Bard sings (episode)</h2>
+  <div class="row">
+    <label>era</label><select id="epEra"><option value="">(fan's era)</option><option>2010_trickshots</option><option>2013_rug_era</option><option>2020_nuke_squad</option><option>2022_snoop</option><option>today</option></select>
+    <label>path</label><select id="epPath"><option value="">(fan's path)</option><option>odysseus</option><option>telemachus</option></select>
+    <label>topic</label><input id="epTopic" placeholder="why Swagg matters" size="20">
+    <button onclick="episode()">Generate episode</button>
+  </div>
+  <div id="epOut"></div>
+</section>
+
+<section>
+  <h2>4 · The Oracle (image upload or webcam)</h2>
+  <div class="row">
+    <label>mode</label><select id="orMode"><option value="argos">argos (show merch)</option><option value="bow_trial">bow_trial (trickshot)</option></select>
+    <input type="file" id="orFile" accept="image/*"> <button onclick="oracleFile()">Judge upload</button>
+    <button class="sec" onclick="camOn()">Webcam</button> <button class="sec" onclick="oracleCam()">Judge webcam frame</button>
+  </div>
+  <video id="cam" autoplay playsinline muted style="display:none;width:320px;transform:scaleX(-1)"></video>
+  <div id="orOut"></div>
+</section>
+
+<section>
+  <h2>5 · Trials · the Suitors</h2>
+  <button onclick="trials()">Current trial + leaderboard</button>
+  <label>set sponsor</label><input id="sponsor" placeholder="Red Bull" size="12"><button class="sec" onclick="setSponsor()">Set</button>
+  <div id="trOut"></div>
+</section>
+
+<section>
+  <h2>6 · The Siren (what the extension calls)</h2>
+  <div class="row">
+    <label>videoId</label><input id="vid" value="demoVideo1" size="14">
+    <label>t</label><input id="t" value="30" size="4">
+    <label>channel</label><input id="chan" value="FaZe Clan" size="12">
+    <button onclick="siren()">Context</button> <button class="sec" onclick="collect()">Collect relic</button>
+  </div>
+  <div id="sirOut"></div>
+</section>
+
+<section>
+  <h2>7 · Ask the Bard</h2>
+  <div class="row"><input id="q" size="50" value="Why does Snoop matter to FaZe?"><button onclick="ask()">Ask</button></div>
+  <div id="askOut"></div>
+</section>
+
+<section>
+  <h2>8 · Recap video · Pass · Daily Omen</h2>
+  <div class="row">
+    <button onclick="recap()">Render my recap</button>
+    <button class="sec" onclick="pass()">Buy Odyssey Pass (mock)</button>
+    <button class="sec" onclick="omenToday()">Today's omen</button>
+    <input id="omenAns" placeholder="your answer" size="14"><button class="sec" onclick="omenAnswer()">Answer</button>
+  </div>
+  <div id="miscOut"></div>
+</section>
+
+<section>
+  <h2>9 · War Room</h2>
+  <button onclick="warroom()">Load metrics</button>
+  <div id="wrOut"></div>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const fan = () => $('fan').value.trim();
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const raw = j => `<details><summary>raw JSON</summary><pre>${esc(JSON.stringify(j, null, 2))}</pre></details>`;
+async function call(method, path, body, isForm) {
+  const opt = { method };
+  if (body && isForm) opt.body = body;
+  else if (body) { opt.headers = { 'Content-Type': 'application/json' }; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  let j; try { j = await r.json(); } catch { j = { status: r.status }; }
+  if (!r.ok) throw Object.assign(new Error(j.detail || r.status), { j });
+  return j;
+}
+async function run(outId, fn) {
+  const out = $(outId); out.innerHTML = '<i>working…</i>';
+  try { out.innerHTML = await fn(); } catch (e) { out.innerHTML = `<pre style="color:#b00">${esc(e.message)}</pre>` + (e.j ? raw(e.j) : ''); }
+}
+function useDemo() { $('fan').value = 'demo_odysseus'; localStorage.setItem('ithaca_fan', 'demo_odysseus'); }
+try { $('fan').value = localStorage.getItem('ithaca_fan') || ''; } catch {}
+
+(async () => {
+  try {
+    const h = await call('GET', '/health');
+    $('health').innerHTML = ['gemini', 'elevenlabs'].map(k => `<span class="pill ${h[k] ? 'ok' : 'no'}">${k}</span>`).join('') +
+      `<span class="pill">lore: ${h.lore_backend}</span><span class="pill">store: ${h.store_backend}</span>`;
+  } catch {}
+})();
+
+function onboard() { run('onboardOut', async () => {
+  const body = { handle: $('handle').value || null };
+  if ($('transcript').value) body.transcript = $('transcript').value;
+  else { body.first_found_year = +$('year').value || null; body.favorite_member = $('member').value || null;
+         body.games = $('games').value.split(',').map(s => s.trim()).filter(Boolean); }
+  const j = await call('POST', '/onboard/classify', body);
+  $('fan').value = j.fan_id; try { localStorage.setItem('ithaca_fan', j.fan_id); } catch {}
+  return `<p><b>${j.path.toUpperCase()}</b> · entry era <b>${j.entry_era}</b> · ${esc(j.reason)}</p><p class="say">“${esc(j.bard_line)}”</p>` + raw(j);
+}); }
+
+function odyssey() { run('mapOut', async () => {
+  const j = await call('GET', `/odyssey/${encodeURIComponent(fan())}`);
+  const nodes = j.map.map(n => `<div class="era ${n.is_entry ? 'entry' : ''} ${n.unlocked ? '' : 'locked'}"><b>${n.label}</b><br>${n.relics_collected}/${n.relics_total} relics${n.is_entry ? '<br><i>you were here</i>' : ''}</div>`).join('');
+  const rel = j.relics.map(r => `<span class="pill">${esc(r.name)} · ${r.rarity}</span>`).join('') || '<i>none yet</i>';
+  return `<p>${esc(j.handle || j.fan_id)} · ${j.path} · <b>${j.drachmae}</b> Drachmae · Pass: ${j.has_pass ? 'yes' : 'no'} · next episode: ${j.next_episode.label}</p><div class="map">${nodes}</div><p>Relics: ${rel}</p>` + raw(j);
+}); }
+
+function episode() { run('epOut', async () => {
+  const body = { fan_id: fan() || null, era: $('epEra').value || null, path: $('epPath').value || null, topic: $('epTopic').value || null };
+  const j = await call('POST', '/bard/episode', body);
+  const cue = j.cues.find(c => c.video_id);
+  return `<p><b>${esc(j.title)}</b> · ${j.generated_by}${j.cached ? ' · cached' : ''}</p>` +
+    (j.audio_url ? `<audio controls src="${j.audio_url}"></audio>` : '<p><i>no audio (ElevenLabs not keyed)</i></p>') +
+    `<p>${esc(j.script)}</p>` +
+    (cue ? `<iframe width="480" height="270" src="https://www.youtube.com/embed/${cue.video_id}?start=${cue.start_s}" allowfullscreen></iframe>` :
+           `<p><i>cues: ${j.cues.map(c => esc(c.title)).join(' · ')} (no video IDs in the lore yet)</i></p>`) + raw(j);
+}); }
+
+function verdictHtml(j) {
+  return `<p class="say">“${esc(j.spoken)}”</p><p>${j.era ? 'era: <b>' + j.era + '</b> · ' : ''}${j.score != null ? 'score: <b>' + j.score + '</b> · ' : ''}${j.rank ? 'rank #' + j.rank + ' · ' : ''}confidence ${j.confidence} · +${j.drachmae_awarded} Drachmae · ${j.latency_ms}ms${j.fallback ? ' · <b>FALLBACK</b>' : ''}</p>` +
+    (j.relic ? `<p>Relic: <span class="pill">${esc(j.relic.name)} · ${j.relic.rarity}</span></p>` : '') +
+    (j.imessage_text ? `<p>iMessage B would send:</p><pre>${esc(j.imessage_text)}</pre>` : '') + raw(j);
+}
+function oracleFile() { run('orOut', async () => {
+  const f = $('orFile').files[0]; if (!f) throw new Error('pick an image');
+  const fd = new FormData(); fd.append('image', f); fd.append('mode', $('orMode').value); if (fan()) fd.append('fan_id', fan());
+  return verdictHtml(await call('POST', '/oracle/frame', fd, true));
+}); }
+function camOn() { navigator.mediaDevices.getUserMedia({ video: true }).then(s => { $('cam').srcObject = s; $('cam').style.display = 'block'; }); }
+function oracleCam() { run('orOut', async () => {
+  const v = $('cam'); if (!v.srcObject) throw new Error('turn on the webcam first');
+  const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
+  return verdictHtml(await call('POST', '/oracle/frame', { image_b64: c.toDataURL('image/jpeg', .85), mode: $('orMode').value, fan_id: fan() || null }));
+}); }
+
+function trials() { run('trOut', async () => {
+  const t = await call('GET', '/trials/current'); const lb = await call('GET', '/trials/leaderboard');
+  const rows = lb.suitors.map(s => `<tr><td>${s.rank}</td><td>${esc(s.handle)}${s.simulated ? ' <i>(sim)</i>' : ''}${s.fan_id === fan() ? ' ⬅ you' : ''}</td><td>${s.score}</td></tr>`).join('');
+  return `<p>${esc(t.prompt)} · sponsor: <b>${esc(t.sponsor || 'none')}</b> · pass score ${t.pass_score}</p><table><tr><th>#</th><th>suitor</th><th>score</th></tr>${rows}</table>` + raw({ trial: t, leaderboard: lb });
+}); }
+function setSponsor() { run('trOut', async () => { await call('POST', `/trials/current?sponsor=${encodeURIComponent($('sponsor').value)}`); trials(); return '<i>set</i>'; }); }
+
+let lastLoreId = null;
+function siren() { run('sirOut', async () => {
+  const j = await call('GET', `/siren/context?videoId=${encodeURIComponent($('vid').value)}&t=${+$('t').value || 0}&channel=${encodeURIComponent($('chan').value)}`);
+  lastLoreId = j.lore?.id || null;
+  return `<p>is_faze: <b>${j.is_faze}</b></p>` + (j.lore ? `<p><b>${esc(j.lore.title)}</b> (${j.lore.era_label})<br>${esc(j.lore.summary)}<br><i>${esc(j.lore.why_it_matters)}</i></p>` : '') +
+    (j.relic_available ? `<p>Relic here: <span class="pill">${esc(j.relic_available.name)}</span></p>` : '') +
+    (j.transcript ? `<p>Said now: “${esc(j.transcript)}”</p>` : '') + raw(j);
+}); }
+function collect() { run('sirOut', async () => {
+  if (!fan()) throw new Error('need a fan_id');
+  const j = await call('POST', '/siren/collect', { fan_id: fan(), video_id: $('vid').value, t: +$('t').value || 0, lore_id: lastLoreId });
+  return `<p>${j.relic ? 'Collected <b>' + esc(j.relic.name) + '</b>' : 'No relic'}${j.already_had ? ' (already had it)' : ''} · +${j.drachmae_awarded} → ${j.drachmae_total} Drachmae</p>` + raw(j);
+}); }
+
+function ask() { run('askOut', async () => {
+  const j = await call('POST', '/bard/ask', { question: $('q').value, fan_id: fan() || null, video_id: $('vid').value || null, t: +$('t').value || 0 });
+  return `<p class="say">“${esc(j.answer)}”</p>${j.audio_url ? `<audio controls src="${j.audio_url}"></audio>` : ''}<p>${j.generated_by} · sources: ${j.lore_ids.join(', ')}</p>` + raw(j);
+}); }
+
+function recap() { run('miscOut', async () => {
+  const j = await call('POST', `/recap/${encodeURIComponent(fan())}`);
+  return `<video controls width="270" src="${j.video_url}"></video><p>${j.cached ? 'cached' : 'rendered'} · <a href="${j.video_url}" target="_blank">open mp4</a></p>` + raw(j);
+}); }
+function pass() { run('miscOut', async () => raw(await call('POST', `/pass/checkout?fan_id=${encodeURIComponent(fan())}`))); }
+function omenToday() { run('miscOut', async () => { const j = await call('GET', '/omen/today'); return `<pre>${esc(j.imessage_text)}</pre>` + raw(j); }); }
+function omenAnswer() { run('miscOut', async () => {
+  const j = await call('POST', '/omen/answer', { fan_id: fan(), answer: $('omenAns').value });
+  return `<p class="say">${esc(j.reply)}</p>` + raw(j);
+}); }
+
+function warroom() { run('wrOut', async () => {
+  const j = await call('GET', '/warroom/metrics'); const t = j.totals, r = j.revenue_by_stream_cents;
+  const usd = c => '$' + (c / 100).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const tr = Object.entries(t).map(([k, v]) => `<tr><td>${k}</td><td>${k.includes('cents') ? usd(v) : v}</td></tr>`).join('');
+  const last = j.daily.slice(-7).map(d => `<tr><td>${d.day}</td><td>${d.active_fans}</td><td>${d.reactivated}</td><td>${d.new_fans}</td><td>${d.trial_entries}</td></tr>`).join('');
+  return `<p>${j.simulated ? '<b>SIMULATED DATA</b> · ' : ''}backend: ${j.backend} · revenue: Pass ${usd(r.odyssey_pass)} · Era Drops ${usd(r.era_drop)} · Sponsored Trials ${usd(r.sponsored_trial)}</p>
+    <div class="row" style="align-items:flex-start"><table>${tr}</table>
+    <table><tr><th>day</th><th>active</th><th>reactivated</th><th>new</th><th>trials</th></tr>${last}</table></div>` + raw(j);
+}); }
+</script>
+</body>
+</html>

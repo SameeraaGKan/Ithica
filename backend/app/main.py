@@ -52,3 +52,9 @@ async def health():
 async def oracle_cam():
     """FaceTime fallback: same Oracle, laptop camera."""
     return FileResponse(BASE_DIR / "static" / "oracle_cam.html")
+
+
+@app.get("/test", include_in_schema=False)
+async def test_page():
+    """Plain page that exercises every endpoint (dev only)."""
+    return FileResponse(BASE_DIR / "static" / "test.html")
