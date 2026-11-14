@@ -154,7 +154,8 @@ def _lore_for(video_id: str, t: int, channel: Optional[str]) -> tuple[bool, Opti
 @router.get("/siren/context", response_model=SirenContext, tags=["siren"])
 async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional[str] = None):
     is_faze, e = _lore_for(videoId, t, channel)
-    lore_out = {k: e.get(k) for k in ("id", "era", "year", "title", "people", "summary", "why_it_matters", "start_s", "end_s")} if e else None
+    lore_out = {k: e.get(k) for k in ("id", "era", "year", "title", "people", "summary", "why_it_matters",
+                                      "video_id", "start_s", "end_s")} if e else None
     if lore_out:
         lore_out["era_label"] = ERA_LABELS.get(e["era"])
     relic = relic_catalog().get(e["relic"]["id"]) if e and e.get("relic") else None

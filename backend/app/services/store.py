@@ -34,7 +34,10 @@ async def seed_demo_fan(st) -> None:
         return
     await st.upsert_fan(DEMO_FAN_ID, handle="Odysseus")
     await st.update_fan(DEMO_FAN_ID, path="odysseus", entry_era="2013_rug_era", games=["Warzone", "Fortnite"])
-    for rid in ("r_1m_plaque", "r_rug_camera"):
+    # first relic of the 2010 era and of the Rug era, whatever lore file is loaded
+    cat = relic_catalog().values()
+    picks = [next((r["id"] for r in cat if r["era"] == era), None) for era in ("2010_trickshots", "2013_rug_era")]
+    for rid in [p for p in picks if p]:
         relic, already = await st.grant_relic(DEMO_FAN_ID, rid, via="seed")
         if relic and not already:
             await st.log_event(DEMO_FAN_ID, "relic", "web", {"era": relic["era"], "relic_id": rid})
