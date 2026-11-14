@@ -1,0 +1,7 @@
+{
+  "_howto": "Atlas UI -> your cluster -> Atlas Search -> Create Search Index -> Atlas Vector Search -> JSON editor. Database: ithaca, Collection: lore_entries, Index name: lore_vector. Paste the 'fields' block below.",
+  "fields": [
+    { "type": "vector", "path": "embedding", "numDimensions": 768, "similarity": "cosine" },
+    { "type": "filter", "path": "era" }
+  ]
+}

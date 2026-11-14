@@ -1,0 +1,153 @@
+{
+  "_note": "STARTER SEED so the pipeline runs end-to-end. D: replace/extend with the 25-30 hand-curated entries from the FaZe challenge timeline. Fill video_id + start_s/end_s from real FaZe uploads, then set verified=true. Run `python -m scripts.load_lore` after editing.",
+  "lore_entries": [
+    {
+      "id": "l_2010_founding",
+      "era": "2010_trickshots",
+      "year": 2010,
+      "title": "FaZe Sniping is born",
+      "people": ["ClipZ", "Housecat", "Resistance"],
+      "summary": "FaZe starts in 2010 as FaZe Sniping, a YouTube channel posting Call of Duty trickshot clips and montages.",
+      "why_it_matters": "Everything FaZe became started as a few kids hitting impossible shots and uploading them. Trickshots are the origin myth.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_founding_scope", "name": "The First Scope", "rarity": "legendary"},
+      "verified": false
+    },
+    {
+      "id": "l_2010_apex",
+      "era": "2010_trickshots",
+      "year": 2010,
+      "title": "Apex joins the crew",
+      "people": ["Apex"],
+      "summary": "Apex joins in the trickshot days and becomes one of the faces and co-owners of FaZe.",
+      "why_it_matters": "He is the thread that runs through every FaZe era, from montages to boardrooms.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_apex_crown", "name": "Apex's Crown", "rarity": "epic"},
+      "verified": false
+    },
+    {
+      "id": "l_2012_1m",
+      "era": "2010_trickshots",
+      "year": 2012,
+      "title": "The 1 Million montage",
+      "people": ["ClipZ", "Apex"],
+      "summary": "FaZe celebrates 1M subscribers with a montage that is still the channel's most-watched video.",
+      "why_it_matters": "The kids who watched this are adults now. This is the video Ithaca is built to bring them back to.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_1m_plaque", "name": "The Million Plaque", "rarity": "legendary"},
+      "verified": false
+    },
+    {
+      "id": "l_2013_rug",
+      "era": "2013_rug_era",
+      "year": 2013,
+      "title": "Rug joins and FaZe goes beyond trickshots",
+      "people": ["Rug"],
+      "summary": "Rug comes up through trickshots and later turns into one of FaZe's biggest vloggers.",
+      "why_it_matters": "This is when FaZe stops being just a Call of Duty clan and becomes a lifestyle and personality brand.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_rug_camera", "name": "Rug's Vlog Cam", "rarity": "rare"},
+      "verified": false
+    },
+    {
+      "id": "l_2013_banks",
+      "era": "2013_rug_era",
+      "year": 2013,
+      "title": "Banks and the business era",
+      "people": ["Banks"],
+      "summary": "Banks joins and helps push FaZe toward merch, events and business deals.",
+      "why_it_matters": "This is the start of FaZe as a company, not just a channel.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_banks_ledger", "name": "The First Ledger", "rarity": "rare"},
+      "verified": false
+    },
+    {
+      "id": "l_esports",
+      "era": "2013_rug_era",
+      "year": 2016,
+      "title": "FaZe goes pro",
+      "people": [],
+      "summary": "FaZe builds competitive rosters, adding pro Call of Duty and Counter-Strike teams.",
+      "why_it_matters": "The trickshot clan proved it could win in esports, not just make montages.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_pro_jersey", "name": "Pro Jersey", "rarity": "epic"},
+      "verified": false
+    },
+    {
+      "id": "l_2020_swagg",
+      "era": "2020_nuke_squad",
+      "year": 2020,
+      "title": "Swagg gets the offer live on stream",
+      "people": ["Swagg"],
+      "summary": "Swagg is recruited during the Warzone boom, with the offer happening live on stream.",
+      "why_it_matters": "FaZe recruits in public. Earning your way in on camera is the Bow Trial in real life.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_swagg_bow", "name": "Swagg's Bow", "rarity": "legendary"},
+      "verified": false
+    },
+    {
+      "id": "l_2020_nuke_squad",
+      "era": "2020_nuke_squad",
+      "year": 2020,
+      "title": "The Nuke Squad",
+      "people": ["Swagg"],
+      "summary": "FaZe's Warzone squad becomes known for chasing nukes on stream during the battle royale era.",
+      "why_it_matters": "A whole new generation found FaZe through Warzone streams rather than YouTube montages.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_nuke_core", "name": "Nuke Core", "rarity": "epic"},
+      "verified": false
+    },
+    {
+      "id": "l_2022_snoop",
+      "era": "2022_snoop",
+      "year": 2022,
+      "title": "Snoop Dogg joins FaZe",
+      "people": ["Snoop Dogg"],
+      "summary": "Snoop Dogg joins FaZe as a member and joins its board of directors in 2022.",
+      "why_it_matters": "FaZe had crossed over into mainstream culture: gaming meets music meets celebrity.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_snoop_chain", "name": "The Doggfather Chain", "rarity": "legendary"},
+      "verified": false
+    },
+    {
+      "id": "l_2022_public",
+      "era": "2022_snoop",
+      "year": 2022,
+      "title": "FaZe goes public",
+      "people": [],
+      "summary": "FaZe Holdings lists on the Nasdaq in 2022.",
+      "why_it_matters": "A trickshot channel became a public company. Huge peak, and the hard years after it set up today's comeback story.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_ticker", "name": "The Ticker Tape", "rarity": "rare"},
+      "verified": false
+    },
+    {
+      "id": "l_today_revival",
+      "era": "today",
+      "year": 2024,
+      "title": "The new FaZe",
+      "people": [],
+      "summary": "After its acquisition, FaZe rebuilds around a new generation of streamers and creators.",
+      "why_it_matters": "This is FaZe's own Odyssey: coming home after years away and winning a new generation.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_homecoming", "name": "The Homecoming Banner", "rarity": "epic"},
+      "verified": false
+    },
+    {
+      "id": "l_today_ithaca",
+      "era": "today",
+      "year": 2026,
+      "title": "Your road home",
+      "people": [],
+      "summary": "Fans old and new come back to FaZe through Ithaca: the Bard, the Oracle and the Bow Trial.",
+      "why_it_matters": "The story keeps going, and now you're in it.",
+      "video_id": null, "start_s": 0, "end_s": null,
+      "relic": {"id": "r_ithaca_key", "name": "Key to Ithaca", "rarity": "common"},
+      "verified": false
+    }
+  ],
+  "video_index": [
+    {"video_id": "REPLACE_ME", "channel": "FaZe Clan", "title": "example", "published_at": "2012-01-01", "views": 0, "era": "2010_trickshots"}
+  ],
+  "faze_channels": ["FaZe Clan", "FaZe Rug", "FaZe Apex", "FaZe Swagg", "FaZe Banks", "FaZe Sniping", "FaZe Jarvis", "FaZe Kaysan"]
+}

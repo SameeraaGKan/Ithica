@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Oracle · Ithaca</title>
+<style>
+  :root { --red:#e41b23; --gold:#c9a24a; --ink:#0b0b0c; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(circle at 50% 0%, #1a1214, var(--ink) 60%); color:#f3efe6;
+         font-family: Georgia, "Times New Roman", serif; display:flex; flex-direction:column; align-items:center; padding:24px; gap:16px; }
+  h1 { margin:0; letter-spacing:.2em; font-weight:400; color:var(--gold); }
+  .sub { opacity:.7; margin-top:-8px; font-style:italic; }
+  .stage { position:relative; width:min(640px, 94vw); aspect-ratio:4/3; border:1px solid #3a2d22; border-radius:14px; overflow:hidden; background:#000; }
+  video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  button { font:inherit; padding:12px 20px; border-radius:999px; border:1px solid var(--gold); background:transparent; color:#f3efe6; cursor:pointer; }
+  button.primary { background:var(--red); border-color:var(--red); }
+  button:disabled { opacity:.5; cursor:wait; }
+  .verdict { width:min(640px, 94vw); min-height:80px; padding:16px 20px; border-left:3px solid var(--gold); background:#15110f; border-radius:8px; font-size:1.15rem; line-height:1.5; }
+  .meta { font-family: ui-monospace, monospace; font-size:.8rem; opacity:.7; margin-top:8px; }
+  input { font:inherit; background:#15110f; color:#f3efe6; border:1px solid #3a2d22; border-radius:8px; padding:10px; width:220px; }
+</style>
+</head>
+<body>
+  <h1>THE ORACLE</h1>
+  <div class="sub">Show me your past. Or string the bow.</div>
+  <div class="stage"><video id="v" autoplay playsinline muted></video></div>
+  <div class="row">
+    <input id="fan" placeholder="fan id (optional)">
+    <button class="primary" data-mode="argos">Argos Remembers</button>
+    <button data-mode="bow_trial">The Bow Trial</button>
+  </div>
+  <div class="verdict" id="out">The Oracle waits.</div>
+<script>
+const v = document.getElementById('v'), out = document.getElementById('out');
+const fanInput = document.getElementById('fan');
+fanInput.value = new URLSearchParams(location.search).get('fan') || '';
+navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 960 }, audio: false })
+  .then(s => v.srcObject = s).catch(e => out.textContent = 'Camera unavailable: ' + e.message);
+
+function speak(text) {
+  try { const u = new SpeechSynthesisUtterance(text); u.rate = 0.92; u.pitch = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (_) {}
+}
+
+document.querySelectorAll('button[data-mode]').forEach(b => b.onclick = async () => {
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  const image_b64 = c.toDataURL('image/jpeg', 0.85);
+  document.querySelectorAll('button').forEach(x => x.disabled = true);
+  out.textContent = 'The Oracle gazes…';
+  try {
+    const r = await fetch('/oracle/frame', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_b64, mode: b.dataset.mode, fan_id: fanInput.value || null, source: 'web' }) });
+    const j = await r.json();
+    out.innerHTML = '';
+    out.append(j.spoken || JSON.stringify(j));
+    const m = document.createElement('div'); m.className = 'meta';
+    m.textContent = [j.era && 'era: ' + j.era, j.score != null && 'score: ' + j.score,
+                     j.relic && 'relic: ' + j.relic.name, j.drachmae_awarded && '+' + j.drachmae_awarded + ' drachmae',
+                     j.fallback && 'fallback', j.latency_ms + 'ms'].filter(Boolean).join(' · ');
+    out.append(m);
+    speak(j.spoken);
+  } catch (e) { out.textContent = 'The mists are thick: ' + e.message; }
+  document.querySelectorAll('button').forEach(x => x.disabled = false);
+});
+</script>
+</body>
+</html>
