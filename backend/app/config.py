@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     # YouTube Data API v3 (ingest worker)
     youtube_api_key: str = ""
 
+    # Twitch (P1 live trials) — EventSub webhook secret is any 10-100 char string you choose
+    twitch_client_id: str = ""
+    twitch_client_secret: str = ""
+    twitch_eventsub_secret: str = ""
+
     # Auth: ITHACA_API_KEY guards server-to-server routes (agent tools, Chert webhook, admin) when set.
     # Fans get an HMAC-signed token from onboarding; enforced on fan routes only if REQUIRE_FAN_TOKEN=true.
     ithaca_api_key: str = ""

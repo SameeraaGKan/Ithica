@@ -129,6 +129,7 @@ class SirenContext(BaseModel):
     is_faze: bool
     lore: Optional[dict]
     relic_available: Optional[RelicOut]
+    transcript: Optional[str] = None  # what's being said around t, if we have the transcript
 
 
 class CollectRequest(BaseModel):

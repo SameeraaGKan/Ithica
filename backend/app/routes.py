@@ -158,7 +158,9 @@ async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional
     if lore_out:
         lore_out["era_label"] = ERA_LABELS.get(e["era"])
     relic = relic_catalog().get(e["relic"]["id"]) if e and e.get("relic") else None
-    return SirenContext(video_id=videoId, t=t, is_faze=is_faze, lore=lore_out, relic_available=_relic_out(relic))
+    tr = lore().transcript_at(videoId, t) if is_faze else None
+    return SirenContext(video_id=videoId, t=t, is_faze=is_faze, lore=lore_out, relic_available=_relic_out(relic),
+                        transcript=tr["text"] if tr else None)
 
 
 @router.post("/siren/collect", response_model=CollectResponse, tags=["siren"])
@@ -255,3 +257,90 @@ async def omen_today():
 async def omen_answer(req: OmenAnswer, authorization: Optional[str] = Header(default=None)):
     check_fan(req.fan_id, authorization)
     return await omen.answer(req.fan_id, req.answer)
+
+
+# ------------------------------------------------------------- recap video (P1)
+@router.post("/recap/{fan_id}", tags=["recap"], description="Renders (or returns cached) a vertical 15s 'My FaZe Odyssey' mp4.")
+async def recap_video(fan_id: str):
+    from app.services import recap
+    st = store()
+    fan = await st.get_fan(fan_id)
+    if not fan:
+        raise HTTPException(404, "unknown fan")
+    try:
+        out = await recap.render(fan, await st.list_fan_relics(fan_id))
+    except Exception as e:
+        log.exception("recap failed")
+        raise HTTPException(503, f"recap render failed: {e}")
+    await st.log_event(fan_id, "recap", "web", {"key": out["key"]})
+    return out
+
+
+# ------------------------------------------------------------- twitch live trials (P1)
+@router.post("/twitch/eventsub", tags=["twitch"], include_in_schema=True)
+async def twitch_eventsub(request: Request):
+    from fastapi.responses import PlainTextResponse
+    from app.services import twitch
+    from app.config import get_settings
+    if not get_settings().twitch_eventsub_secret:
+        raise HTTPException(503, "TWITCH_EVENTSUB_SECRET not set")
+    body = await request.body()
+    h = {k.lower(): v for k, v in request.headers.items()}
+    if not twitch.verify(h, body):
+        raise HTTPException(403, "bad signature")
+    import json as _json
+    msg = _json.loads(body)
+    kind = h.get("twitch-eventsub-message-type")
+    if kind == "webhook_callback_verification":
+        return PlainTextResponse(msg["challenge"])
+    if kind == "revocation":
+        log.warning("twitch subscription revoked: %s", msg.get("subscription", {}).get("type"))
+        return PlainTextResponse("", status_code=204)
+    if twitch.seen(h.get("twitch-eventsub-message-id", "")):
+        return PlainTextResponse("", status_code=204)
+    res = twitch.handle(msg.get("subscription", {}).get("type", ""), msg.get("event", {}))
+    log.info("twitch event -> %s", res)
+    return PlainTextResponse("", status_code=204)
+
+
+@router.get("/twitch/live", tags=["twitch"])
+async def twitch_live():
+    from app.services import twitch
+    return twitch.live.snapshot()
+
+
+@router.post("/twitch/live/queue", tags=["twitch"], dependencies=[Depends(require_service_key)],
+             description="Manually queue a challenger (demo without a live stream).")
+async def twitch_queue(login: str, display: Optional[str] = None):
+    from app.services import twitch
+    return {"queued": twitch.live.enqueue(login.lower(), display or login, "manual"), **twitch.live.snapshot()}
+
+
+@router.post("/twitch/live/next", tags=["twitch"], dependencies=[Depends(require_service_key)])
+async def twitch_next():
+    from app.services import twitch
+    return {"current": twitch.live.next(), **twitch.live.snapshot()}
+
+
+@router.post("/twitch/live/judge", tags=["twitch"], dependencies=[Depends(require_service_key)],
+             description="Judge the current challenger's trickshot from a frame (multipart image or JSON image_b64).")
+async def twitch_judge(request: Request):
+    from app.services import twitch
+    data, mime, _ = await _read_frame(request)
+    ch = twitch.live.current
+    if not ch:
+        raise HTTPException(409, "no current challenger; call /twitch/live/next")
+    fan = await store().upsert_fan(f"twitch_{ch['login']}", handle=ch["display"])
+    v = await oracle.judge(data, mime, "bow_trial", fan_id=fan["id"], context=f"Live on Twitch, challenger {ch['display']}",
+                           source="twitch")
+    twitch.live.recent.appendleft({"login": ch["login"], "display": ch["display"], "score": v.score, "spoken": v.spoken,
+                                   "rank": v.rank, "relic": v.relic.name if v.relic else None})
+    twitch.live.current = None
+    return v
+
+
+@router.get("/twitch/overlay", include_in_schema=False)
+async def twitch_overlay():
+    from fastapi.responses import FileResponse
+    from app.config import BASE_DIR
+    return FileResponse(BASE_DIR / "static" / "twitch.html")

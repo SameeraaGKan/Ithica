@@ -45,6 +45,8 @@ class LoreStore:
         self._local_vecs: Optional[list[list[float]]] = None
         self._mongo = None
         self.backend = "keyword"
+        from app.services.transcripts import load_local
+        self.transcripts: list[dict] = load_local()
 
     async def init(self) -> None:
         if self.s.has_mongo:
@@ -63,6 +65,9 @@ class LoreStore:
                     vids = await db.video_index.find({}, {"_id": 0}).to_list(5000)
                     if vids:
                         self.video_index = vids
+                tr = await db.transcript_chunks.find({}, {"_id": 0, "embedding": 0}).to_list(20000)
+                if tr:
+                    self.transcripts = tr
                 self.backend = "atlas"
                 log.info("lore: Atlas connected (%d entries)", n)
                 return
@@ -121,6 +126,16 @@ class LoreStore:
         inside = [e for e in hits if e.get("start_s", 0) <= t and (e.get("end_s") is None or t <= e["end_s"])]
         pool = inside or hits
         return max(pool, key=lambda e: e.get("start_s", 0) if e.get("start_s", 0) <= t else -1)
+
+    def transcript_at(self, video_id: str, t: int) -> Optional[dict]:
+        rows = [r for r in self.transcripts if r["video_id"] == video_id]
+        return next((r for r in rows if r["start_s"] <= t <= r["end_s"] + 2), None)
+
+    def search_transcripts(self, query: str, video_id: Optional[str] = None, k: int = 2) -> list[dict]:
+        rows = [r for r in self.transcripts if not video_id or r["video_id"] == video_id]
+        q = _tokens(query)
+        scored = [(len(q & _tokens(r["text"])), r) for r in rows]
+        return [r for sc, r in sorted(scored, key=lambda x: -x[0]) if sc > 0][:k]
 
     def video_meta(self, video_id: str) -> Optional[dict]:
         return next((v for v in self.video_index if v["video_id"] == video_id), None)

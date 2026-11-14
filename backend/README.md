@@ -47,6 +47,10 @@ Before the demo: `python -m scripts.pregen_episodes` caches every era × path ep
 | POST | `/trials/current?sponsor=&prompt=` | admin (service key) | set the sponsored trial; logs the sponsorship revenue |
 | GET | `/omen/today` | **B** (P1) | daily quest + ready-to-send `imessage_text` |
 | POST | `/omen/answer` | **B** (P1) | `{fan_id, answer}` → `{correct, reply, drachmae_awarded}` |
+| POST | `/recap/{fan_id}` | **C** Hub share button | renders/caches a vertical 15s "My FaZe Odyssey" mp4 → `video_url` |
+| POST | `/twitch/eventsub` | Twitch | signed EventSub webhook: `!bow` in chat or a "Bow Trial" channel-points reward queues a challenger |
+| GET | `/twitch/live` | overlay | queue, current challenger, recent verdicts |
+| POST | `/twitch/live/next` · `/twitch/live/judge` · `/twitch/live/queue` | streamer control (service key) | pull next, judge frame, manual queue |
 | GET | `/warroom/metrics?days=14` | **C** War Room | totals, revenue by stream, era-drop demand, daily series; `simulated` flag |
 | POST | `/pass/checkout?fan_id=&sku=` | **C** | mocked Odyssey Pass / Era Drop purchase |
 
@@ -65,6 +69,12 @@ Demo fan: `demo_odysseus` (returning fan, Rug era, two relics) is always seeded.
 python -m scripts.ingest_youtube --handle @FaZeClan --handle @FaZeRug --max 200
 ```
 Pulls uploads (title, date, views, era by year) into `video_index` (seed JSON + Atlas). Siren uses it to recognize FaZe videos.
+
+## Recap, Twitch, transcripts (P1)
+
+- **Recap**: needs `ffmpeg` on the box (`setup_vm.sh` installs it). Narration uses Gemini + ElevenLabs when keyed.
+- **Twitch**: set `TWITCH_CLIENT_ID/SECRET/EVENTSUB_SECRET`, then `python -m scripts.twitch_subscribe --broadcaster <you> --bot-user <you>`. OBS browser source: `/twitch/overlay`. Streamer control (camera + buttons): `/twitch/overlay?control=1&key=<ITHACA_API_KEY>`. No stream handy? Queue challengers manually from the control page.
+- **Transcripts**: `python -m scripts.ingest_transcript --video-id <id> --captions file.vtt` (or `--audio clip.mp3` → Whisper if `faster-whisper` is installed, else Gemini). Siren context then returns `transcript`, and Ask the Bard uses it as a source.
 
 ## Tests
 
@@ -91,4 +101,4 @@ systemd keeps it alive, Caddy does HTTPS. Stays at 1 worker because of the in-me
 
 ## Not built (P1/P2, by the plan's cut order)
 
-Recap video (FFmpeg), Whisper transcripts, Twitch EventSub live trials, Grok suitor commentator, Solana relics.
+Grok suitor commentator, Solana relics, Discord bot (P2, first in the cut order).

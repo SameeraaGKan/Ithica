@@ -128,6 +128,11 @@ async def ask(question: str, *, video_id: Optional[str] = None, t: Optional[int]
         hits = [here] + hits[:3]
     lore_block = json.dumps([{k: e.get(k) for k in ("id", "year", "title", "people", "summary", "why_it_matters")} for e in hits], indent=1)
     on_screen = f"They are watching: {here['title']} ({here['year']}).\n" if here else ""
+    said_now = L.transcript_at(video_id, t or 0) if video_id else None
+    said = ([said_now] if said_now else []) + L.search_transcripts(question, video_id=video_id, k=2)
+    if said:
+        on_screen += "TRANSCRIPT (what is said in the video, treat as fact source):\n" + \
+            "\n".join(f"[{r['start_s']}s] {r['text'][:600]}" for r in said[:3]) + "\n"
     res = await gemini.generate_json(f"{on_screen}QUESTION: {question}\n\nLORE:\n{lore_block}", _Ask, system=ASK_SYSTEM,
                                      timeout=8, temperature=0.5)
     by = "gemini"

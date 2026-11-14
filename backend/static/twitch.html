@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ithaca · Live Bow Trial</title>
+<!--
+  OBS browser source (transparent): /twitch/overlay
+  Streamer control (camera + buttons): /twitch/overlay?control=1&key=<ITHACA_API_KEY>
+-->
+<style>
+  :root { --red:#e41b23; --gold:#c9a24a; --cream:#f3efe6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Georgia, serif; color:var(--cream); background:transparent; }
+  body.control { background:#0b0b0c; padding:20px; }
+  .card { width:420px; background:rgba(11,11,12,.86); border:1px solid #3a2d22; border-left:4px solid var(--gold); border-radius:12px; padding:16px 18px; margin:16px; }
+  h2 { margin:0 0 8px; font-weight:400; letter-spacing:.18em; color:var(--gold); font-size:15px; }
+  .now { font-size:26px; margin:4px 0 10px; }
+  .now b { color:var(--red); }
+  ol { margin:0; padding-left:20px; font-size:15px; opacity:.85; }
+  .verdict { font-size:17px; line-height:1.45; margin-top:12px; padding-top:10px; border-top:1px solid #3a2d22; }
+  .score { font-size:42px; color:var(--gold); }
+  .hint { font-family: ui-monospace, monospace; font-size:12px; opacity:.6; margin-top:8px; }
+  .ctl { display:none; gap:10px; margin:16px; flex-wrap:wrap; }
+  body.control .ctl { display:flex; }
+  video { width:420px; border-radius:12px; transform:scaleX(-1); display:none; margin:16px; }
+  body.control video { display:block; }
+  button, input { font:inherit; padding:10px 16px; border-radius:999px; border:1px solid var(--gold); background:transparent; color:var(--cream); cursor:pointer; }
+  button.primary { background:var(--red); border-color:var(--red); }
+  input { border-radius:8px; cursor:text; width:160px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>THE BOW TRIAL · LIVE</h2>
+    <div class="now" id="now">Type <b>!bow</b> in chat to challenge</div>
+    <ol id="queue"></ol>
+    <div class="verdict" id="verdict"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+  <video id="cam" autoplay playsinline muted></video>
+  <div class="ctl">
+    <button id="next">Next challenger</button>
+    <button id="judge" class="primary">Oracle, judge!</button>
+    <input id="manual" placeholder="queue login"><button id="add">Queue</button>
+  </div>
+<script>
+const qs = new URLSearchParams(location.search);
+const control = qs.get('control') === '1';
+const key = qs.get('key') || '';
+const withKey = p => p + (key ? (p.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) : '');
+if (control) {
+  document.body.classList.add('control');
+  navigator.mediaDevices.getUserMedia({ video: true }).then(s => document.getElementById('cam').srcObject = s).catch(() => {});
+}
+let lastSpoken = '';
+function speak(t) { try { const u = new SpeechSynthesisUtterance(t); u.rate = .92; u.pitch = .8; speechSynthesis.speak(u); } catch (_) {} }
+async function refresh() {
+  try {
+    const s = await (await fetch('/twitch/live')).json();
+    document.getElementById('now').innerHTML = s.current
+      ? 'Now stringing the bow: <b>' + s.current.display + '</b>'
+      : (s.queue.length ? 'Next up: <b>' + s.queue[0].display + '</b>' : 'Type <b>!bow</b> in chat to challenge');
+    document.getElementById('queue').innerHTML = s.queue.slice(0, 5).map(q => '<li>' + q.display + '</li>').join('');
+    const r = s.recent[0];
+    const v = document.getElementById('verdict');
+    v.innerHTML = r ? '<span class="score">' + (r.score ?? '–') + '</span> ' + r.display +
+      (r.rank ? ' · #' + r.rank + ' among the suitors' : '') + '<br>' + r.spoken + (r.relic ? '<br>Relic: ' + r.relic : '') : '';
+    if (control && r && r.spoken !== lastSpoken) { lastSpoken = r.spoken; speak(r.spoken); }
+    document.getElementById('hint').textContent = s.channel ? 'twitch.tv/' + s.channel + (s.online ? ' · live' : '') : '';
+  } catch (_) {}
+}
+setInterval(refresh, 2000); refresh();
+document.getElementById('next').onclick = () => fetch(withKey('/twitch/live/next'), { method: 'POST' }).then(refresh);
+document.getElementById('add').onclick = () => {
+  const l = document.getElementById('manual').value.trim(); if (!l) return;
+  fetch(withKey('/twitch/live/queue?login=' + encodeURIComponent(l)), { method: 'POST' }).then(refresh);
+};
+document.getElementById('judge').onclick = async () => {
+  const v = document.getElementById('cam'), c = document.createElement('canvas');
+  c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  document.getElementById('verdict').textContent = 'The Oracle gazes…';
+  const r = await fetch(withKey('/twitch/live/judge'), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_b64: c.toDataURL('image/jpeg', .85) }) });
+  if (!r.ok) document.getElementById('verdict').textContent = (await r.json()).detail || 'error';
+  refresh();
+};
+</script>
+</body>
+</html>

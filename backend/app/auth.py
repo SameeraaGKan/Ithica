@@ -8,7 +8,7 @@ import hmac
 import secrets
 from typing import Optional
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Query
 
 from app.config import get_settings
 
@@ -25,9 +25,12 @@ def verify_fan_token(token: str) -> Optional[str]:
     return None
 
 
-async def require_service_key(x_ithaca_key: Optional[str] = Header(default=None)) -> None:
-    key = get_settings().ithaca_api_key
-    if key and not (x_ithaca_key and secrets.compare_digest(x_ithaca_key, key)):
+async def require_service_key(x_ithaca_key: Optional[str] = Header(default=None),
+                              key: Optional[str] = Query(default=None, include_in_schema=False)) -> None:
+    """Header X-Ithaca-Key, or ?key= for browser pages (Twitch control page)."""
+    want = get_settings().ithaca_api_key
+    got = x_ithaca_key or key
+    if want and not (got and secrets.compare_digest(got, want)):
         raise HTTPException(401, "missing or bad X-Ithaca-Key")
 
 

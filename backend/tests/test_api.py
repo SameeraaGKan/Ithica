@@ -110,3 +110,39 @@ def test_service_key_enforced(c, monkeypatch):
     monkeypatch.setattr(get_settings(), "ithaca_api_key", "k")
     assert c.post("/tools/get_lore", json={"query": "x"}).status_code == 401
     assert c.post("/tools/get_lore", json={"query": "x"}, headers={"X-Ithaca-Key": "k"}).status_code == 200
+
+
+def test_recap(c):
+    j = c.post("/recap/demo_odysseus").json()
+    assert j["video_url"].endswith(".mp4")
+    assert c.post("/recap/demo_odysseus").json()["cached"]
+
+
+def test_twitch_flow(c):
+    import hashlib, hmac, json
+    from datetime import datetime, timezone
+    from app.config import get_settings
+    s = get_settings()
+    s.twitch_eventsub_secret = "testsecret123"
+    body = json.dumps({"subscription": {"type": "channel.chat.message"},
+                       "event": {"broadcaster_user_login": "me", "chatter_user_login": "viewer1",
+                                 "chatter_user_name": "Viewer1", "message": {"text": "!bow let me in"}}}).encode()
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.123456789Z")
+    sig = "sha256=" + hmac.new(b"testsecret123", b"m1" + ts.encode() + body, hashlib.sha256).hexdigest()
+    h = {"Twitch-Eventsub-Message-Id": "m1", "Twitch-Eventsub-Message-Timestamp": ts,
+         "Twitch-Eventsub-Message-Signature": sig, "Twitch-Eventsub-Message-Type": "notification"}
+    assert c.post("/twitch/eventsub", content=body, headers=h).status_code == 204
+    assert c.post("/twitch/eventsub", content=body, headers={**h, "Twitch-Eventsub-Message-Signature": "sha256=bad"}).status_code == 403
+    assert c.get("/twitch/live").json()["queue"][0]["login"] == "viewer1"
+    assert c.post("/twitch/live/next").json()["current"]["login"] == "viewer1"
+    v = c.post("/twitch/live/judge", files={"image": ("f.jpg", JPG, "image/jpeg")}).json()
+    assert v["score"] is not None and c.get("/twitch/live").json()["recent"][0]["login"] == "viewer1"
+    s.twitch_eventsub_secret = ""
+
+
+def test_captions_parse():
+    from app.services.transcripts import chunk, parse_captions
+    vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:04.000\nyo we hit 1 million\n\n00:00:04.000 --> 00:00:40.000\n<c>thank you</c> guys\n"
+    segs = parse_captions(vtt)
+    assert [x.text for x in segs] == ["yo we hit 1 million", "thank you guys"]
+    assert chunk(segs)[0]["start_s"] == 1
