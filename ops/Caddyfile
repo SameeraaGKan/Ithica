@@ -1,0 +1,14 @@
+# Caddy gets and renews the HTTPS certificate for __DOMAIN__ automatically.
+# Chert's FaceTime/iMessage webhooks need this stable https URL: https://__DOMAIN__/chert/webhook
+__DOMAIN__ {
+	encode gzip
+	reverse_proxy 127.0.0.1:8000 {
+		# long-ish timeout: Gemini vision + ElevenLabs TTS calls can take a few seconds
+		transport http {
+			read_timeout 60s
+		}
+	}
+	log {
+		output file /var/log/caddy/ithaca.log
+	}
+}

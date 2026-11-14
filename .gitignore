@@ -7,3 +7,5 @@ backend/static/audio/*.mp3
 node_modules/
 .next/
 dist/
+.DS_Store
+*.zip
