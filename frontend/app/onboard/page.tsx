@@ -93,8 +93,7 @@ function Onboard() {
         goToOdyssey(fan_id || session?.fan_id || "demo_odysseus");
         return "Map shown to the fan.";
       };
-      // WebRTC first: the browser applies echo cancellation + noise suppression, so the agent hears the fan
-      // instead of its own voice or silence. Signed websocket URL is the fallback.
+      // The backend picks the transport: signed websocket first (WebRTC/LiveKit drops on some networks), WebRTC fallback.
       const connect =
         session?.mode === "webrtc" && session.conversation_token
           ? { conversationToken: session.conversation_token, connectionType: "webrtc" }

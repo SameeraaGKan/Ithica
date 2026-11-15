@@ -340,12 +340,12 @@ async def bard_agent_session(payload: Optional[dict] = None):
     if s.has_bard_agent:
         if s.elevenlabs_agent_public:
             out.update(agent_id=s.elevenlabs_agent_id, mode="public")
+        # Websocket first: WebRTC (LiveKit) drops on some networks right after connecting, and the SDK's websocket
+        # mic already has echo cancellation + noise suppression. WebRTC is only the fallback.
+        elif url := await bard_agent.signed_url():
+            out.update(agent_id=s.elevenlabs_agent_id, signed_url=url, mode="signed")
         elif token := await bard_agent.conversation_token():
             out.update(agent_id=s.elevenlabs_agent_id, conversation_token=token, mode="webrtc")
-        else:
-            url = await bard_agent.signed_url()
-            if url:
-                out.update(agent_id=s.elevenlabs_agent_id, signed_url=url, mode="signed")
     return out
 
 
