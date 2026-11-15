@@ -57,7 +57,12 @@ export default function Athena() {
 
   useEffect(() => {
     let alive = true;
-    const load = () => api.quest(currentFan()).then((r) => alive && setQuest(r.data));
+    let busy = false; // one poll at a time: overlapping slow requests landed out of order and made her flicker
+    const load = () => {
+      if (busy) return;
+      busy = true;
+      api.quest(currentFan()).then((r) => alive && setQuest(r.data)).finally(() => (busy = false));
+    };
     load();
     const id = setInterval(load, 3000); // Siren collects happen in another tab: keep up
     return () => {

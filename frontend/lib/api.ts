@@ -174,27 +174,32 @@ const QUEST_STEPS: [string, string, string, string, string][] = [
   ["tier", "Claim your reward", "Your relics have raised you. Claim what you've earned.", "Open my tier", "/tiers"],
 ];
 const OFFLINE_KEY = "ithaca_quest_offline";
-function offlineDone(): string[] {
+function offlineDone(fanId: string): string[] {
   try {
-    return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '["bard"]');
+    return JSON.parse(localStorage.getItem(`${OFFLINE_KEY}:${fanId}`) || '["bard"]');
   } catch {
     return ["bard"];
   }
 }
-function offlineMark(step: string) {
+function offlineMark(fanId: string, step: string) {
   try {
-    const d = new Set(offlineDone());
+    const d = new Set(offlineDone(fanId));
     d.add(step);
-    localStorage.setItem(OFFLINE_KEY, JSON.stringify([...d]));
+    localStorage.setItem(`${OFFLINE_KEY}:${fanId}`, JSON.stringify([...d]));
   } catch {}
 }
 function offlineQuest(fanId: string): Quest {
-  const done = new Set(offlineDone());
+  const done = new Set(offlineDone(fanId));
   const steps = QUEST_STEPS.map(([key, title, line, cta, href]) => ({
     key, title, line, cta, href: href.replace("{fan}", encodeURIComponent(fanId)), done: done.has(key),
   }));
   return { fan_id: fanId, steps, completed: steps.filter((s) => s.done).length, total: steps.length, current: steps.find((s) => !s.done) ?? null };
 }
+
+const mergeQuest = (fanId: string) => (q: Quest | null): Quest => {
+  q?.steps?.forEach((s) => s.done && offlineMark(fanId, s.key));
+  return offlineQuest(fanId);
+};
 
 // When the backend is down, old (not pulled) or has no lore for an era, still show cards that open the
 // FaZe Clan channel's own search, so the map -> YouTube -> Siren step never dead-ends.
@@ -322,13 +327,14 @@ export const api = {
     call<string[] | null>("/intro/narration", undefined, () => null, (r) => (r.lines ?? []).map((l: any) => l.audio_url ?? null), 30000),
 
   // Athena's quest: the 7-step journey and what to do next.
+  // Live steps are saved locally and merged with local marks, so a slow/failed poll never moves Athena backwards.
   quest: (fanId: string) =>
-    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}`, undefined, () => offlineQuest(fanId)),
+    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}`, undefined, () => offlineQuest(fanId), mergeQuest(fanId)),
   // Hub-only steps (opening an era video, playing the Bard's song) have no backend event of their own.
   questMark: (fanId: string, step: string) => {
-    offlineMark(step);
+    offlineMark(fanId, step);
     return call<Quest | null>(`/quest/${encodeURIComponent(fanId)}/mark`, { method: "POST", body: JSON.stringify({ step }) }, () =>
-      offlineQuest(fanId),
+      offlineQuest(fanId), mergeQuest(fanId),
     );
   },
 
