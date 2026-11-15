@@ -16,10 +16,10 @@ Athena (the 🦉 in the corner) walks every fan through seven steps and ticks th
 |---|---|---|---|
 | 1 | **Meet the Bard** | Talk for 60 seconds ("When did you find FaZe? Who was your guy?"). The Bard classifies you as Odysseus or Telemachus and draws your **Odyssey Map** with your entry era glowing. | ElevenLabs Agents, Gemini |
 | 2 | **Return to your era** | Tap any era on the map (2010 Trickshots, 2013 Rug Era, 2020 Nuke Squad, 2022 Snoop, Today) to see that era's FaZe Clan videos. | FastAPI, lore DB |
-| 3 | **Hear the Siren** | Open a video on YouTube. The Siren slides in with the story behind that moment and a **relic** to collect for **Drachmae** (points). Back on the Hub, the relic shows up live. | Chrome extension (MV3) |
-| 4 | **Prove it to the Oracle** | Hold your FaZe merch up to the camera (or FaceTime the Oracle). *Argos Remembers* names the era out loud and grants that era's relic. | Gemini vision, Chert |
-| 5 | **The Bard's song** | A 60–90 second episode about your era, grounded only in curated, sourced lore, narrated over the real FaZe clip. | Gemini RAG, ElevenLabs TTS |
-| 6 | **String the bow** | The weekly **Bow Trial**: show your best trickshot. The Oracle scores it and ranks you among **the Suitors**. Brands can sponsor the week. | Gemini vision |
+| 3 | **Hear the Siren** | Open a video on YouTube. The Siren slides in with the story behind that moment, a **relic** to collect for **Drachmae** (points) and a hint for the next relic to find. Works on FaZe member channels too (Rug, Swagg, Jarvis…). Back on the Hub, the relic shows up live. | Chrome extension (MV3) |
+| 4 | **Prove it to the Oracle** | Hold your FaZe merch up to the camera (or FaceTime the Oracle). *Argos Remembers* names the item, dates it ("2014 · Rug Era"), says which clue gave it away, and grants that era's relic. | Gemini vision (local Ollama backup), Chert |
+| 5 | **The Bard's song** | A 60–90 second episode about your era, grounded only in curated, sourced lore, narrated over the real FaZe clip playing in the page. Watching 30 seconds of the clip earns its relic. | Gemini RAG, ElevenLabs TTS, YouTube player |
+| 6 | **String the bow** | The weekly **Bow Trial**: show your best trickshot. The Oracle scores it, runs a safety check, and ranks you among **the Suitors**. Brands can sponsor the week. | Gemini vision |
 | 7 | **Claim your reward** | **Tiers**: Traveler (1 relic), Sailor (5), Hero (10), Legend (20) unlock a badge, wallpapers, early Era Drop access and Legend-only merch. The **Odyssey Pass ($4.99)** unlocks a monthly meet & greet draw with your FaZe favorite. | FastAPI |
 
 Also: a shareable 15-second vertical **recap video** of your Odyssey, a **Daily Omen** lore question (also over iMessage), and **live Bow Trials on Twitch** (`!bow` in chat).
@@ -51,17 +51,25 @@ flowchart TB
   BARD -- "tool calls" --> API
   ORACLE -- "frames" --> API
   API --> GEM["Gemini<br/>scripts, vision, embeddings"]
+  API -. "backup" .-> OLL["Ollama (local)<br/>qwen2.5vl vision"]
   API --> EL["ElevenLabs<br/>narration"]
   API --> ATLAS["MongoDB Atlas<br/>lore + vector search"]
   API --> TIGER["Tiger Data<br/>events → War Room"]
   API --> CHERT["Chert<br/>iMessage"]
 ```
 
-**Only the backend talks to the AI and data services.** Every client just calls the API. Every service is optional: with no keys, the backend falls back to canned verdicts, template episodes, keyword lore search and an in-memory database, so the demo never goes silent.
+**Only the backend talks to the AI and data services.** Every client just calls the API. Every service is optional, and each has a fallback so the demo never goes silent:
+
+- **Oracle and Bard scripts:** Gemini → local Ollama model → labelled canned answer
+- **Narration:** ElevenLabs → the computer's built-in voice (macOS / Windows) → the browser reads the script
+- **Lore search:** Atlas vector search → keyword search
+- **Database:** Tiger Data → in-memory store
+- **Hub:** if the backend can't be reached, Athena and the era videos still work from the browser
 
 | Service | Role in ITHACA |
 |---|---|
 | **Gemini** | Writes Bard episodes from retrieved lore (RAG), judges Oracle frames (structured JSON verdicts), answers "Ask the Bard", embeds lore |
+| **Ollama** (local, no key) | Backup vision/text model when Gemini fails or runs out of quota |
 | **ElevenLabs** | The Bard's voice: the live onboarding agent, plus narration (TTS) for episodes |
 | **Chert** | FaceTime the Oracle from your own phone; iMessage relic cards and the Daily Omen |
 | **MongoDB Atlas** | Lore and vector search |
@@ -73,15 +81,16 @@ flowchart TB
 
 ```
 backend/        FastAPI API (Part A): app/services/* (bard, oracle, lore, store, rewards, quest, recap, chert, ...)
-  data/         lore_seed.json: 31 curated, sourced FaZe moments (eras, people, relics, video hints)
-  scripts/      load_lore, ingest_youtube, setup_bard_agent, pregen_episodes, seed_tiger, chert_subscribe, ...
+  data/         lore_seed.json (31 curated, sourced FaZe moments) and merch_reference.json (verified merch per era for the Oracle)
+  scripts/      load_lore, ingest_youtube, setup_bard_agent, bard_doctor, pregen_episodes, seed_tiger, chert_subscribe, ...
   static/       test.html (API test page), oracle_cam.html, bard.html, twitch.html
-  tests/        pytest suite (36 tests, run with no keys)
+  tests/        pytest suite (43 tests, run with no keys)
 frontend/       Ithaca Hub + War Room (Next.js 15, Tailwind 4, Framer Motion, Recharts)
 extension/      The Siren (Chrome MV3 side panel)
 oracle_agent/   LiveKit worker that Chert bridges FaceTime calls into
 ops/            Vultr setup, Caddy, systemd, one-command redeploy
-docs/           Part B (voice / FaceTime / iMessage) and Part D (Siren, data, ops) guides
+setup/          one-command setup and start scripts (Windows .ps1, macOS/Linux .sh)
+docs/           Part B and Part D guides, Siren setup, privacy notes, Devpost draft
 ```
 
 ---
@@ -91,7 +100,8 @@ docs/           Part B (voice / FaceTime / iMessage) and Part D (Siren, data, op
 ### 0. Prerequisites
 
 - **Python 3.11+**, **Node.js 20+**, **Git**, **Chrome**
-- Optional: **FFmpeg** for recap videos (`winget install ffmpeg` / `brew install ffmpeg`)
+- Optional: **FFmpeg** for recap videos (`winget install Gyan.FFmpeg` / `brew install ffmpeg`)
+- Optional: **[Ollama](https://ollama.com)** for the local backup AI (`ollama pull qwen2.5vl:3b`)
 
 ```bash
 git clone https://github.com/SameeraaGKan/Ithica.git
@@ -147,6 +157,8 @@ Open **http://localhost:3000** and click **Enter as demo fan**. Each page shows 
 2. Pin **The Siren**. Open any FaZe video on YouTube and click the icon.
 3. In **⚙ settings**, set API base to `http://127.0.0.1:8080` and Fan ID to `demo_odysseus`, then **Save**. The status should read **Live · Ithica API**.
 
+More detail and fixes: [`docs/SIREN_SETUP.md`](docs/SIREN_SETUP.md).
+
 ### 4. Add keys (all optional)
 
 Put them in `backend/.env`, then restart the backend.
@@ -189,7 +201,7 @@ See [`docs/part-b-voice-facetime.md`](docs/part-b-voice-facetime.md). Short vers
 ```bash
 cd backend
 python -m scripts.pregen_episodes     # caches every era × path episode (with audio when ElevenLabs is keyed)
-pytest -q                             # 36 tests, no keys needed
+pytest -q                             # 43 tests, no keys needed
 ```
 
 ---
@@ -199,8 +211,8 @@ pytest -q                             # 36 tests, no keys needed
 1. **Home → Talk to the Bard** (or **Enter as demo fan** if the Wi-Fi is shaky). "When did you find FaZe?" The map appears: *"You were there."*
 2. **Tap 2013 · Rug Era.** The era's FaZe Clan videos appear. Open one.
 3. **On YouTube, the Siren slides in** with the story behind that moment. **Collect Relic.** Switch back: the relic and Drachmae are already on the Hub.
-4. **Prove it to the Oracle.** Hold up a FaZe hoodie. The Oracle names the era out loud and grants the relic. (On FaceTime, the relic card arrives by iMessage.)
-5. **The Bard's song** plays over the era. Then the **Bow Trial**: score, rank among the Suitors.
+4. **Prove it to the Oracle.** Hold up a FaZe hoodie. The Oracle names the item and year, says the clue it dated it by, and grants the relic. (On FaceTime, the relic card arrives by iMessage.)
+5. **The Bard's song** plays over the FaZe clip. Then the **Bow Trial**: score, rank among the Suitors.
 6. **Tiers**: relics → rewards. The Pass unlocks the meet & greet draw.
 7. **War Room**: three revenue lines, reactivated fans, era-drop demand. *"FaZe doesn't need new fans or old fans. It needs both, and ITHACA brings them home together."*
 
@@ -218,6 +230,10 @@ pytest -q                             # 36 tests, no keys needed
 | `setup_bard_agent`: `missing the permission convai_write` | Give the ElevenLabs key **Agents: Write** (or remove the restrictions) |
 | Siren stuck on **Offline lore** | ⚙ settings: API base `http://127.0.0.1:8080`, then **Save**. Reload the extension after a `git pull` |
 | Athena stuck on a step | Use **Done, next step →**; the Siren step needs the extension collecting for the same Fan ID |
+| Athena or the era videos missing | `git pull`, check `frontend/.env.local` points at `http://127.0.0.1:8080`, restart both servers |
+| Bow Trial score shows but isn't on the Suitors board | It was an offline verdict (no Gemini or Ollama reached), so no safety check ran. Fix the Gemini key or start Ollama |
+| Oracle is slow the first time with Ollama | The first call loads the model into memory (several seconds). Later calls are faster |
+| Episode clip doesn't play | The lore has no `video_id` for that moment yet; the Bard card and a YouTube link show instead |
 | Hydration warning in the console | A browser extension modified the page. Demo in Incognito |
 
 ---
