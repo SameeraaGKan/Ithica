@@ -10,7 +10,7 @@ ITHACA brings both back. Returning fans are **Odysseus** ("you were there"). New
 
 ## The journey
 
-The home page first asks: **new or returning?** Returning fans go straight to the Bard. New fans watch **"FaZe in 40 seconds"**, a story-style montage from 2010 trickshots to today (every line from the curated lore), then start their Odyssey as Telemachus.
+The home page first asks: **new or returning?** Returning fans go straight to the Bard. New fans watch **"FaZe in 40 seconds"**, a story-style montage from 2010 trickshots to today, narrated in the Bard's ElevenLabs voice (every line from the curated lore), then start their Odyssey as Telemachus with their journey set to 2026.
 
 Athena (the 🦉 in the corner) walks every fan through seven steps and ticks them off as they happen.
 
@@ -202,7 +202,7 @@ See [`docs/part-b-voice-facetime.md`](docs/part-b-voice-facetime.md). Short vers
 
 ```bash
 cd backend
-python -m scripts.pregen_episodes     # caches every era × path episode (with audio when ElevenLabs is keyed)
+python -m scripts.pregen_episodes     # caches every era × path episode + the montage narration (audio when ElevenLabs is keyed)
 pytest -q                             # 43 tests, no keys needed
 ```
 

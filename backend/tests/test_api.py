@@ -232,3 +232,10 @@ def test_athena_visits_count(c):
     c.post(f"/quest/{f}/mark", json={"step": "song"})
     assert c.post(f"/quest/{f}/mark", json={"step": "bow"}).json()["current"]["key"] == "tier"
     assert c.post(f"/quest/{f}/mark", json={"step": "tier"}).json()["completed"] == 7
+
+
+def test_intro_narration(c):
+    j = c.get("/intro/narration").json()
+    assert j["voice"] == "bard" and len(j["lines"]) == 8
+    assert all(l["text"] for l in j["lines"])
+    assert all(l["audio_url"] is None for l in j["lines"])  # no ElevenLabs in tests: silent, never a robot voice

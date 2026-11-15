@@ -70,21 +70,35 @@ const SLIDES: Slide[] = [
 ];
 const SLIDE_MS = 5500;
 
-export default function FazeMontage({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
+export default function FazeMontage({
+  onDone,
+  onClose,
+  narration,
+}: {
+  onDone: () => void;
+  onClose: () => void;
+  narration?: (string | null)[] | null; // the Bard's clips: one per slide, then the closing line
+}) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [voice, setVoice] = useState(false);
+  const bardVoice = !!narration?.some(Boolean);
+  const [voice, setVoice] = useState(bardVoice);
   const [elapsed, setElapsed] = useState(0);
+  const [slideMs, setSlideMs] = useState(SLIDE_MS);
   const finished = i >= SLIDES.length;
   const last = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => setVoice(bardVoice), [bardVoice]); // clips can arrive after the montage opens
 
   const next = useCallback(() => {
     setI((n) => Math.min(n + 1, SLIDES.length));
     setElapsed(0);
+    setSlideMs(SLIDE_MS);
   }, []);
   const prev = useCallback(() => {
     setI((n) => Math.max(n - 1, 0));
     setElapsed(0);
+    setSlideMs(SLIDE_MS);
   }, []);
 
   // progress timer
@@ -93,25 +107,47 @@ export default function FazeMontage({ onDone, onClose }: { onDone: () => void; o
     last.current = performance.now();
     const id = setInterval(() => {
       const now = performance.now();
-      setElapsed((e) => e + (now - last.current));
+      const dt = now - last.current; // computed here: the state updater may run later
       last.current = now;
+      setElapsed((e) => e + dt);
     }, 80);
     return () => clearInterval(id);
   }, [paused, finished, i]);
   useEffect(() => {
-    if (elapsed >= SLIDE_MS) next();
-  }, [elapsed, next]);
+    if (!finished && elapsed >= slideMs) next();
+  }, [elapsed, slideMs, next, finished]);
 
-  // optional narration with the browser voice
+  // The Bard narrates: each slide lasts as long as its clip (never shorter than SLIDE_MS).
+  const clip = voice && narration ? narration[Math.min(i, SLIDES.length)] : null;
   useEffect(() => {
-    if (!voice || finished || !("speechSynthesis" in window)) return;
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if (!clip) return;
+    const a = new Audio(clip);
+    audioRef.current = a;
+    a.onloadedmetadata = () => {
+      if (!finished && Number.isFinite(a.duration)) setSlideMs(Math.max(SLIDE_MS, a.duration * 1000 + 700));
+    };
+    a.play().catch(() => {}); // blocked autoplay: the slide just runs on its timer
+    return () => a.pause();
+  }, [clip, finished]);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (paused) a.pause();
+    else if (a.paused && !a.ended) a.play().catch(() => {});
+  }, [paused]);
+
+  // No Bard audio (ElevenLabs down): the voice toggle falls back to the browser voice
+  useEffect(() => {
+    if (!voice || bardVoice || finished || !("speechSynthesis" in window)) return;
     const s = SLIDES[i];
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(`${s.years.replace("–", "to")}. ${s.title} ${s.body}`);
     u.rate = 1.05;
     window.speechSynthesis.speak(u);
     return () => window.speechSynthesis.cancel();
-  }, [i, voice, finished]);
+  }, [i, voice, finished, bardVoice]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
   // keyboard: arrows move, space pauses, esc closes
@@ -172,18 +208,18 @@ export default function FazeMontage({ onDone, onClose }: { onDone: () => void; o
           <div key={n} className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
             <div
               className="h-full bg-white"
-              style={{ width: n < i ? "100%" : n === i ? `${Math.min(100, (elapsed / SLIDE_MS) * 100)}%` : "0%" }}
+              style={{ width: n < i ? "100%" : n === i ? `${Math.min(100, (elapsed / slideMs) * 100)}%` : "0%" }}
             />
           </div>
         ))}
       </div>
       <div className="relative z-10 flex items-center justify-between px-4 pt-3 text-xs font-bold uppercase tracking-[0.2em] text-white/70 sm:px-8">
-        <span>FaZe in 40 seconds</span>
+        <span>FaZe in 40 seconds{bardVoice && voice ? " · narrated by the Bard" : ""}</span>
         <div className="flex items-center gap-4">
           {!finished && (
             <>
               <button onClick={() => setVoice((v) => !v)} className="hover:text-white" aria-label="Toggle narration">
-                {voice ? "🔊 Voice on" : "🔈 Voice off"}
+                {voice ? (bardVoice ? "🔊 The Bard" : "🔊 Voice on") : "🔈 Voice off"}
               </button>
               <button onClick={() => setPaused((p) => !p)} className="hover:text-white">
                 {paused ? "▶ Play" : "❚❚ Pause"}
@@ -279,6 +315,7 @@ export default function FazeMontage({ onDone, onClose }: { onDone: () => void; o
                   onClick={() => {
                     setI(0);
                     setElapsed(0);
+                    setSlideMs(SLIDE_MS);
                   }}
                   className="btn btn-ghost px-6 py-3.5 text-base"
                 >

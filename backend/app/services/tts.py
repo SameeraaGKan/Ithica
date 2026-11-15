@@ -51,14 +51,15 @@ async def _mac_say(text: str, out_wav) -> bool:
         aiff.unlink(missing_ok=True)
 
 
-async def narrate(text: str, *, voice_id: Optional[str] = None, timeout: float = 30.0) -> Optional[str]:
+async def narrate(text: str, *, voice_id: Optional[str] = None, timeout: float = 30.0,
+                  local_fallback: bool = True) -> Optional[str]:
     """Returns a public URL to the audio, or None if no voice is available.
     Order: ElevenLabs (mp3), then the computer's built-in voice (wav: macOS `say` or Windows System.Speech)."""
     s = get_settings()
     voice = voice_id or s.elevenlabs_voice_id
     s.audio_dir.mkdir(parents=True, exist_ok=True)
     stem = _key(text, voice)
-    for ext in (".mp3", ".wav"):
+    for ext in ((".mp3", ".wav") if local_fallback else (".mp3",)):
         cached = s.audio_dir / f"{stem}{ext}"
         if cached.exists() and cached.stat().st_size > 0:
             return f"{s.public_base_url.rstrip('/')}/static/audio/{cached.name}"
@@ -86,6 +87,6 @@ async def narrate(text: str, *, voice_id: Optional[str] = None, timeout: float =
         except Exception as e:
             log.warning("elevenlabs tts failed: %r", e)
     wav = s.audio_dir / f"{stem}.wav"
-    if await _mac_say(text, wav):
+    if local_fallback and await _mac_say(text, wav):
         return f"{s.public_base_url.rstrip('/')}/static/audio/{wav.name}"
     return None

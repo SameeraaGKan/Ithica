@@ -203,7 +203,7 @@ const ERA_SEARCHES: Record<EraId, [string, string, string][]> = {
   "2013_rug": [["Rug era vlogs", "FaZe Rug", "2013"], ["The FaZe House", "FaZe House", "2014"], ["Adapt joins", "FaZe Adapt", "2013"]],
   "2020_nuke": [["Warzone takeover", "FaZe Warzone", "2020"], ["Nuke Squad", "FaZe Nuke Squad", "2020"], ["New generation", "FaZe 2020", "2020"]],
   "2022_snoop": [["Snoop Dogg joins", "FaZe Snoop Dogg", "2022"], ["FaZe goes public", "FaZe 2022", "2022"], ["Mainstream", "FaZe Clan 2022", "2022"]],
-  today: [["FaZe today", "FaZe Clan", "Today"], ["Latest uploads", "FaZe", "Today"], ["The road home", "FaZe return", "Today"]],
+  today: [["FaZe today", "FaZe Clan", "2026"], ["Latest uploads", "FaZe", "2026"], ["The road home", "FaZe return", "2026"]],
 };
 function mockEraVideos(era: EraId): EraVideo[] {
   return (ERA_SEARCHES[era] ?? ERA_SEARCHES.today).map(([title, q, year]) => ({
@@ -316,6 +316,10 @@ export const api = {
       }),
       ORACLE_TIMEOUT_MS,
     ),
+
+  // New-fan montage narration in the Bard's voice (one clip per slide + the closing line; null = no audio).
+  introNarration: () =>
+    call<string[] | null>("/intro/narration", undefined, () => null, (r) => (r.lines ?? []).map((l: any) => l.audio_url ?? null), 30000),
 
   // Athena's quest: the 7-step journey and what to do next.
   quest: (fanId: string) =>

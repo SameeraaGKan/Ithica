@@ -523,6 +523,15 @@ async def rewards_claim(fan_id: str, payload: dict, authorization: Optional[str]
         raise HTTPException(422, str(e))
 
 
+# ------------------------------------------------------------- new-fan intro montage (home page)
+@router.get("/intro/narration", tags=["hub"],
+            description="'FaZe in 40 seconds' narration in the Bard's voice: one line + audio_url per montage slide "
+                        "(audio_url null when ElevenLabs isn't available).")
+async def intro_narration():
+    from app.services import intro
+    return await intro.narration()
+
+
 # ------------------------------------------------------------- era videos (map -> YouTube -> Siren)
 @router.get("/eras/{era}/videos", tags=["hub"],
             description="FaZe videos for one era of the Odyssey Map. Lore entries with a video_id link straight to the "

@@ -7,7 +7,7 @@ export const ERAS: EraInfo[] = [
   { id: "2013_rug", year: "2013", label: "Rug Era", blurb: "Vlogs, the house, FaZe becomes a lifestyle." },
   { id: "2020_nuke", year: "2020", label: "Nuke Squad", blurb: "Warzone takeover and a new generation of members." },
   { id: "2022_snoop", year: "2022", label: "Snoop", blurb: "Snoop Dogg joins the board. FaZe goes mainstream." },
-  { id: "today", year: "Today", label: "Ithaca", blurb: "The road home. Your chapter starts now." },
+  { id: "today", year: "2026", label: "Today", blurb: "The road home. Your chapter starts now." },
 ];
 
 export const eraById = (id: EraId) => ERAS.find((e) => e.id === id) ?? ERAS[0];

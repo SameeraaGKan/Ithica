@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { rememberFan } from "@/components/Athena";
 import FazeMontage from "@/components/FazeMontage";
 import { api } from "@/lib/api";
@@ -19,6 +19,11 @@ export default function Landing() {
   const [choice, setChoice] = useState<null | "returning">(null);
   const [montage, setMontage] = useState(false);
   const [starting, setStarting] = useState(false);
+  // fetch the Bard's montage narration up front so it's ready when a new fan taps
+  const [narration, setNarration] = useState<(string | null)[] | null>(null);
+  useEffect(() => {
+    api.introNarration().then((r) => setNarration(r.data));
+  }, []);
 
   // New fan after the montage: start them as Telemachus and open their Odyssey.
   const startNewFan = async () => {
@@ -33,6 +38,7 @@ export default function Landing() {
       <AnimatePresence>
         {montage && (
           <FazeMontage
+            narration={narration}
             onClose={() => setMontage(false)}
             onDone={() => {
               setMontage(false);

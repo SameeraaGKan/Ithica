@@ -11,7 +11,7 @@ ERA_LABELS = {
     "2013_rug_era": "2013 · Rug Era",
     "2020_nuke_squad": "2020 · Nuke Squad",
     "2022_snoop": "2022 · Snoop",
-    "today": "Today",
+    "today": "2026 · Today",
 }
 
 
