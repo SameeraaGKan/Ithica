@@ -124,6 +124,30 @@ async function raw(path: string, init?: RequestInit, timeoutMs = TIMEOUT_MS): Pr
   }
 }
 
+// When the backend is down, old (not pulled) or has no lore for an era, still show cards that open the
+// FaZe Clan channel's own search, so the map -> YouTube -> Siren step never dead-ends.
+const ERA_SEARCHES: Record<EraId, [string, string, string][]> = {
+  "2010_trickshots": [["Trickshot montages", "FaZe trickshot montage", "2010"], ["ILLCAMS", "FaZe ILLCAMS", "2011"], ["Early FaZe", "FaZe Clan 2010", "2010"]],
+  "2013_rug": [["Rug era vlogs", "FaZe Rug", "2013"], ["The FaZe House", "FaZe House", "2014"], ["Adapt joins", "FaZe Adapt", "2013"]],
+  "2020_nuke": [["Warzone takeover", "FaZe Warzone", "2020"], ["Nuke Squad", "FaZe Nuke Squad", "2020"], ["New generation", "FaZe 2020", "2020"]],
+  "2022_snoop": [["Snoop Dogg joins", "FaZe Snoop Dogg", "2022"], ["FaZe goes public", "FaZe 2022", "2022"], ["Mainstream", "FaZe Clan 2022", "2022"]],
+  today: [["FaZe today", "FaZe Clan", "Today"], ["Latest uploads", "FaZe", "Today"], ["The road home", "FaZe return", "Today"]],
+};
+function mockEraVideos(era: EraId): EraVideo[] {
+  return (ERA_SEARCHES[era] ?? ERA_SEARCHES.today).map(([title, q, year]) => ({
+    lore_id: null,
+    title,
+    year,
+    summary: "Opens the FaZe Clan channel's search for this era.",
+    video_id: null,
+    start_s: 0,
+    url: `https://www.youtube.com/@FaZeClan/search?query=${encodeURIComponent(q)}`,
+    thumbnail: null,
+    kind: "search",
+    relic: null,
+  }));
+}
+
 async function call<T>(
   path: string,
   init: RequestInit | undefined,
@@ -229,8 +253,8 @@ export const api = {
     call<EraVideo[]>(
       `/eras/${ERA_OUT[era]}/videos${fanId ? `?fan_id=${encodeURIComponent(fanId)}` : ""}`,
       undefined,
-      () => [],
-      (r) => r.videos ?? [],
+      () => mockEraVideos(era),
+      (r) => (r.videos?.length ? r.videos : mockEraVideos(era)),
     ),
 
   // Tier system: relic-count tiers + the Pass-only meet & greet.
