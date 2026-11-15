@@ -39,7 +39,10 @@ export default function Onboard() {
   const conversation = useConversation({
     onMessage: ({ message, source }: { message: string; source: string }) =>
       setLines((l): Line[] => [...l, { who: source === "user" ? ("you" as const) : ("bard" as const), text: message }].slice(-8)),
-    onError: (e: unknown) => setError(typeof e === "string" ? e : "The Bard lost his voice. Try the typed path below."),
+    onError: (e: unknown) => {
+      console.error("[ithaca] Bard conversation error:", e);
+      setError(`The Bard lost his voice: ${typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e)}. Try the typed path below.`);
+    },
   });
 
   const start = async () => {
@@ -71,8 +74,15 @@ export default function Onboard() {
         clientTools: { show_odyssey_map: showMap, show_odyssey: showMap },
       };
       await conversation.startSession(opts as Parameters<typeof conversation.startSession>[0]);
-    } catch {
-      setError("Microphone blocked or agent unreachable. Use the typed path below.");
+    } catch (e) {
+      console.error("[ithaca] Bard voice failed to start:", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      const micBlocked = /permission|notallowed|denied|not found|device/i.test(msg);
+      setError(
+        micBlocked
+          ? `Microphone blocked (${msg}). Click the lock icon in the address bar, allow the microphone, and reload.`
+          : `The Bard couldn't connect: ${msg}. Use the typed path below.`,
+      );
     }
   };
 
