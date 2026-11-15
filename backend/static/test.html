@@ -175,6 +175,7 @@ function episode() { run('epOut', async () => {
 
 function verdictHtml(j) {
   return `<p class="say">“${esc(j.spoken)}”</p><p>${j.era ? 'era: <b>' + j.era + '</b> · ' : ''}${j.score != null ? 'score: <b>' + j.score + '</b> · ' : ''}${j.rank ? 'rank #' + j.rank + ' · ' : ''}confidence ${j.confidence} · +${j.drachmae_awarded} Drachmae · ${j.latency_ms}ms${j.fallback ? ' · <b>FALLBACK</b>' : ''}</p>` +
+    (j.reasons && j.reasons.length ? `<p style="font-size:13px;color:#555">What the Oracle saw: ${j.reasons.map(esc).join(' · ')}</p>` : '') +
     (j.relic ? `<p>Relic: <span class="pill">${esc(j.relic.name)} · ${j.relic.rarity}</span></p>` : '') +
     (j.imessage_text ? `<p>iMessage B would send:</p><pre>${esc(j.imessage_text)}</pre>` : '') + raw(j);
 }

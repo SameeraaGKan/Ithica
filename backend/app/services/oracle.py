@@ -16,18 +16,51 @@ from app.services.store import award, store
 
 log = logging.getLogger("ithaca.oracle")
 
-ERA_GUIDE = """FaZe eras (pick the closest):
-- 2010_trickshots: early FaZe Sniping / Call of Duty MW2-MW3-BO trickshot days, montage-era logos, early red/black FaZe "F" logo.
-- 2013_rug_era: vlog era, early merch hoodies, Rug/Banks/Apex house-era content, esports beginnings.
-- 2020_nuke_squad: Warzone era, streaming setups, Swagg-era merch.
-- 2022_snoop: Snoop Dogg collab, public-company era, collab drops.
-- today: current FaZe branding and creators.
-If you cannot tell the era, choose the most plausible and lower your confidence."""
+# Dates from FaZe's own logo-history page (fazeclan.com/pages/about) and documented collabs.
+WHAT_COUNTS = """WHAT COUNTS AS FAZE (any ONE of these is enough):
+- The FaZe monogram in ANY version or colour: the angular "F" made of stacked bars/blades (it also reads as F+C).
+  It appears in red, black, white, grey, gold, tricolour (red/yellow/blue), outlined, or tone-on-tone.
+- The words "FaZe", "FaZe Clan", "FaZe Sniping" or "FaZe Apparel" (note the capital Z), even small, on a tag, sleeve or back print.
+- A FaZe co-branded collab: FaZe x Champion (Champion "C" logo next to or blended with FaZe), Kappa, Manchester City,
+  Takashi Murakami (rainbow flowers jersey or mousepad), NFL, Lyrical Lemonade, Anti Social Social Club, Warren Lotas,
+  BE@RBRICK, CLOT, LA Kings, NASCAR, OpTic, G-Shock, Puma.
+- A FaZe esports jersey (player name or number with FaZe branding and sponsor patches), or an Atlanta FaZe (Call of Duty League) item.
+- FaZe content on a screen: a FaZe YouTube channel or video, a FaZe stream overlay, a FaZe member's channel.
+- Merch for a FaZe member that says FaZe (e.g. "FaZe Rug", "FaZe Banks", "FaZe Apex", "FaZe Swagg", "FaZe Jarvis").
+NOT FaZe: other esports orgs (OpTic alone, 100 Thieves, Sentinels, TSM, NRG, Team Liquid, Cloud9), generic gaming gear,
+school or club hoodies, random red logos, people's faces. Never claim a logo you cannot actually see."""
+
+ERA_GUIDE = """HOW TO DATE IT (use the strongest clue; say which one decided it in items_seen):
+FaZe logo versions (official dates):
+- 1st logo, May 2010 to Jan 2016: the original FaZe Sniping / FaZe Clan mark. The earliest "FAZE SNIPING" was a blocky,
+  metallic, 3D-style wordmark. The early monogram is sharp and often tricolour.
+- 3rd logo, Mar 2016 to Aug 2018: the tricolour monogram reworked, slightly cleaner, some angles rounded (FaZe House era).
+- 4th logo, Aug 2018 to Jun 2022: refined monogram of the competitive / esports era.
+- 5th logo, Jun 2022 to Dec 2024: modernised mark. FaZe lettering beside the monogram dates from about 2021 onward.
+- 7th logo, Jan 2025 on: smoother edges with inner curved points, usually no lettering. 2025 also introduced "FaZe Camo" prints.
+Map to the five eras of the Odyssey:
+- 2010_trickshots (2010-2012): FaZe Sniping wordmark, the earliest sharp monogram, Call of Duty MW2 / MW3 / Black Ops 1
+  trickshot montage on screen, budget screen-printed tees, an Xbox 360 era setup.
+- 2013_rug_era (2013-2018): the tricolour monogram on simple hoodies and tees (the classic grey or black hoodie with a big
+  chest "F"), vlog-era member merch (FaZe Rug, Banks, Adapt, Jarvis), Black Ops 2 / Ghosts / Advanced Warfare / Black Ops 3
+  on screen, early esports gear.
+- 2020_nuke_squad (2019-2021): streetwear collabs, especially FaZe x Champion (2018-2019, including "GHOST" and "BLACK OPS"
+  hoodies and a hockey jersey), Kappa (2019), Manchester City, G-Shock, Murakami (2021), Fortnite or Warzone on screen,
+  streaming setups, the refined 2018 monogram.
+- 2022_snoop (2022-2023): Snoop Dogg / FaZe items, NFL and NASCAR-style collabs, the modernised 2022 logo with lettering,
+  public-company era merch.
+- today (2024 on): the smoothed 2025 logo, FaZe Camo, newest creator merch.
+If the only clue is a plain monogram with no other context, pick the era its logo version fits and keep confidence at or
+below 0.55. Do NOT default to one era: decide from what you see, and do not choose 2013_rug_era unless the clues fit it."""
 
 
 class _Argos(BaseModel):
-    faze_related: bool = Field(description="Is there FaZe merch, logo, poster, or FaZe-related item in view?")
+    item: str = Field(description="What the fan is holding up or showing, in a few words (e.g. 'grey hoodie', 'jersey', 'phone screen')")
+    faze_clues: list[str] = Field(description="Every FaZe clue actually visible: logo version and colour, words, collab "
+                                              "co-brand, jersey details, game on screen. Empty if none.")
+    faze_related: bool = Field(description="True only if at least one clue from WHAT COUNTS AS FAZE is visible")
     era: Literal["2010_trickshots", "2013_rug_era", "2020_nuke_squad", "2022_snoop", "today"]
+    era_reason: str = Field(description="The single clue that decided the era, in one short phrase")
     confidence: float = Field(ge=0, le=1)
     items_seen: list[str] = Field(description="Short list of what you see that informed the call")
     spoken: str = Field(description="1-2 sentences the Oracle says aloud, Homeric and warm, under 35 words")
@@ -90,23 +123,29 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
     fallback = False
 
     if mode == "argos":
-        prompt = (f"Mode: ARGOS REMEMBERS. The fan is showing you something from their FaZe past (merch, a poster, their setup). "
-                  f"Identify the FaZe era it comes from and welcome them home by naming that era.\n"
-                  f"BE STRICT: faze_related is true ONLY if a FaZe logo (the stylized red 'F' / FaZe wordmark) or clearly FaZe "
-                  f"merchandise is actually visible. Other hoodies, logos, people, rooms or screens are NOT FaZe. If nothing FaZe is "
-                  f"visible, set faze_related=false, confidence below 0.2, and make the spoken line a gentle, in-character request to "
-                  f"hold their FaZe relic up to the light. Never pretend to see a logo that isn't there.\n{ERA_GUIDE}\n"
+        prompt = (f"Mode: ARGOS REMEMBERS. The fan is showing you something from their FaZe past: merch, a jersey, a "
+                  f"poster, a collab piece, their setup, or FaZe content on a screen. Work in this order:\n"
+                  f"1. Say what the item is. 2. List every FaZe clue you can actually see (logo version and colour, words, "
+                  f"collab co-branding, jersey details, the game on screen). 3. Decide faze_related using WHAT COUNTS AS FAZE. "
+                  f"4. Date it with HOW TO DATE IT and name the deciding clue. 5. Speak: welcome them home and name the era "
+                  f"in words a fan would know (e.g. 'the trickshot days', 'the Rug and Banks vlog years', 'the Champion "
+                  f"drops and Warzone nukes', 'the Snoop era', 'the new FaZe'), and mention the item you saw.\n"
+                  f"If nothing FaZe is visible: faze_related=false, confidence below 0.2, and the spoken line gently asks, in "
+                  f"character, to hold their FaZe relic closer to the light.\n\n{WHAT_COUNTS}\n\n{ERA_GUIDE}\n\n"
                   f"Extra context: {context or 'none'}")
         res = await gemini.generate_json(prompt, _Argos, images=[(image, mime)], system=ORACLE_SYSTEM,
                                          timeout=s.oracle_timeout_s, temperature=0.4)
         if res is None:
             fallback = True
-            res = _Argos(faze_related=True, era="2013_rug_era", confidence=0.0, items_seen=[], spoken=random.choice(CANNED_ARGOS))
+            res = _Argos(item="", faze_clues=[], faze_related=True, era="2013_rug_era", era_reason="", confidence=0.0,
+                         items_seen=[], spoken=random.choice(CANNED_ARGOS))
         recognized = res.faze_related and res.confidence >= 0.35
         if res.faze_related and not fallback and res.confidence < 0.35:
             res.spoken += " The vision is faint. Hold it closer to the light."
+        reasons = ([f"Item: {res.item}"] if res.item else []) + list(res.faze_clues or res.items_seen) + \
+                  ([f"Era clue: {res.era_reason}"] if res.era_reason else [])
         v = OracleVerdict(mode="argos", recognized=recognized or fallback, era=res.era, confidence=res.confidence,
-                          reasons=res.items_seen, spoken=res.spoken, fallback=fallback)
+                          reasons=reasons, spoken=res.spoken, fallback=fallback)
         relic_id = _era_relic(res.era) if v.recognized else None
         event, drach = "oracle_argos", 40
     else:
