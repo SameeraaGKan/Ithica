@@ -36,6 +36,10 @@ function BackButton() {
 function OracleCam() {
   const params = useSearchParams();
   const [mode, setMode] = useState<OracleMode>((params.get("mode") as OracleMode) === "bow_trial" ? "bow_trial" : "argos");
+  const modeParam = params.get("mode");
+  useEffect(() => {
+    if (modeParam === "argos" || modeParam === "bow_trial") setMode(modeParam);
+  }, [modeParam]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camError, setCamError] = useState<string | null>(null);

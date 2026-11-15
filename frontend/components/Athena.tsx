@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { DEMO_FAN_ID } from "@/lib/mocks";
@@ -36,6 +36,21 @@ const PAGE_TIPS: Record<string, string> = {
 
 export default function Athena() {
   const path = usePathname() || "/";
+  const router = useRouter();
+
+  // Take the fan to a step: same page -> scroll to its section; otherwise navigate (the map page scrolls to #section).
+  const goTo = (href: string) => {
+    const [pathAndQuery, hash] = href.split("#");
+    const targetPath = pathAndQuery.split("?")[0];
+    if (targetPath === path && hash) {
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.replaceState(null, "", href);
+    } else if (pathAndQuery === path + window.location.search && !hash) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      router.push(href);
+    }
+  };
   const [quest, setQuest] = useState<Quest | null>(null);
   const [open, setOpen] = useState(true);
   const [list, setList] = useState(false);
@@ -97,13 +112,16 @@ export default function Athena() {
                 <>
                   <p className="display text-xl">{step.title}</p>
                   <p className="text-sm italic leading-snug text-gold-soft">&ldquo;{tip && !onStepPage ? tip : step.line}&rdquo;</p>
-                  <Link href={step.href} className="btn btn-gold w-full">
+                  <button onClick={() => goTo(step.href)} className="btn btn-gold w-full">
                     {step.cta} →
-                  </Link>
+                  </button>
                   <button
                     onClick={async () => {
                       const r = await api.questMark(quest.fan_id, step.key);
-                      if (r.data) setQuest(r.data);
+                      if (r.data) {
+                        setQuest(r.data);
+                        if (r.data.current) goTo(r.data.current.href); // straight to the next step
+                      }
                     }}
                     className="w-full text-center text-xs font-bold uppercase tracking-wider text-muted transition hover:text-white"
                   >
@@ -127,7 +145,7 @@ export default function Athena() {
                 <ol className="space-y-1.5">
                   {quest.steps.map((s, i) => (
                     <li key={s.key}>
-                      <Link href={s.href} className="flex items-center gap-2 rounded px-1 py-0.5 text-xs transition hover:bg-white/5">
+                      <button onClick={() => goTo(s.href)} className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs transition hover:bg-white/5">
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                           s.done ? "bg-gold text-ink" : s.key === step?.key ? "bg-faze text-white" : "bg-white/10 text-muted"
@@ -138,7 +156,7 @@ export default function Athena() {
                       <span className={s.done ? "text-muted line-through" : s.key === step?.key ? "text-white" : "text-muted"}>
                         {s.title}
                       </span>
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ol>
