@@ -63,10 +63,10 @@ function OracleCam() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="hero-band flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Tiresias · The Oracle</p>
-          <h1 className="font-display text-4xl font-black">Show the Oracle</h1>
+          <h1 className="display text-5xl">Show the Oracle</h1>
           <p className="mt-2 text-muted">
             {mode === "argos"
               ? "Argos Remembers: hold up old FaZe merch, a poster or your setup."
@@ -108,7 +108,7 @@ function OracleCam() {
             {verdict && (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card border-gold/50">
                 <p className="eyebrow">The Oracle speaks</p>
-                <p className="mt-3 font-display text-lg leading-relaxed text-gold-soft">&ldquo;{verdict.verdict}&rdquo;</p>
+                <p className="mt-3 text-lg italic leading-relaxed text-gold-soft">&ldquo;{verdict.verdict}&rdquo;</p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
                   {verdict.era && <span className="rounded-full bg-white/5 px-3 py-1">Era: {eraById(verdict.era).year} {eraById(verdict.era).label}</span>}
                   {verdict.confidence != null && <span className="rounded-full bg-white/5 px-3 py-1">Confidence {Math.round(verdict.confidence * 100)}%</span>}

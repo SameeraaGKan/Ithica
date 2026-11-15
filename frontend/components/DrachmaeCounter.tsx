@@ -28,7 +28,7 @@ export default function DrachmaeCounter({ value }: { value: number }) {
   return (
     <div className="relative flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2">
       <span className="text-lg">🪙</span>
-      <motion.span className="font-display text-xl font-bold text-gold">{rounded}</motion.span>
+      <motion.span className="display text-2xl text-gold">{rounded}</motion.span>
       <span className="text-xs uppercase tracking-widest text-gold/70">Drachmae</span>
       {gain && (
         <motion.span
