@@ -46,6 +46,15 @@ function Onboard() {
   );
 
   const callId = useRef<string | null>(null);
+  const sessionFan = useRef<string | null>(null);
+  const sentHome = useRef(false);
+  const heardFan = useRef(false); // the fan has answered at least once (voice or typed)
+  // The agent should call show_odyssey_map, but sometimes only says goodbye: open the map ourselves then.
+  const sendHome = useCallback(() => {
+    if (sentHome.current) return;
+    sentHome.current = true;
+    goToOdyssey(sessionFan.current || "demo_odysseus");
+  }, [goToOdyssey]);
   const [say, setSay] = useState("");
   const conversation = useConversation({
     // Defined explicitly: older @elevenlabs/react (0.4.x) crashed on connect when these were unset.
@@ -59,6 +68,7 @@ function Onboard() {
       // Show why the call ended, so a hang-up right after the greeting isn't a mystery.
       const det = (d ?? {}) as { reason?: string; message?: string; context?: { code?: number; reason?: string } };
       if (det.reason === "user") return;
+      if (det.reason === "agent" && heardFan.current) return sendHome(); // the Bard finished and hung up
       const why =
         det.reason === "error"
           ? `connection error: ${det.message || "unknown"}`
@@ -72,8 +82,13 @@ function Onboard() {
     onDebug: (d: unknown) => console.debug("[ithaca] Bard debug:", d),
     onAudio: () => {},
     onUnhandledClientToolCall: (call: unknown) => console.warn("[ithaca] agent called an unknown client tool:", call),
-    onMessage: ({ message, source }: { message: string; source: string }) =>
-      setLines((l): Line[] => [...l, { who: source === "user" ? ("you" as const) : ("bard" as const), text: message }].slice(-8)),
+    onMessage: ({ message, source }: { message: string; source: string }) => {
+      const text = message.replace(/\[[a-z ]{2,20}\]\s*/gi, "").trim(); // expressive voice tags like [warm]
+      if (source === "user") heardFan.current = true;
+      // farewell with the map (voice or typed answers, same path): reveal the Odyssey once he's said it
+      else if (heardFan.current && /odyssey map|look upon your odyssey/i.test(text)) setTimeout(sendHome, 4000);
+      setLines((l): Line[] => [...l, { who: source === "user" ? ("you" as const) : ("bard" as const), text }].slice(-8));
+    },
     onError: (e: unknown) => {
       console.error("[ithaca] Bard conversation error:", e);
       setError(`The Bard lost his voice: ${typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e)}. Try the typed path below.`);
@@ -89,8 +104,12 @@ function Onboard() {
       probe.getTracks().forEach((t) => t.stop());
       // Part B's backend pre-creates the fan and hands back how to connect (signed URL keeps the agent private).
       const session = await api.bardSession();
+      sessionFan.current = session?.fan_id ?? null;
+      sentHome.current = false;
+      heardFan.current = false;
       const showMap = async ({ fan_id }: { fan_id?: string }) => {
-        goToOdyssey(fan_id || session?.fan_id || "demo_odysseus");
+        if (fan_id) sessionFan.current = fan_id;
+        setTimeout(sendHome, 6000); // let him finish the farewell line first
         return "Map shown to the fan.";
       };
       // The backend picks the transport: signed websocket first (WebRTC/LiveKit drops on some networks), WebRTC fallback.
@@ -132,6 +151,17 @@ function Onboard() {
     setBusy(true);
     const { data } = await api.classify(typed);
     setLines([{ who: "you", text: typed }, { who: "bard", text: data.path === "odysseus" ? "You were there. Welcome home, Odysseus." : "Then sit, Telemachus, and hear of your father's legend." }]);
+    goToOdyssey(data.fan_id);
+  };
+
+  // "Show my Odyssey": classify everything the fan has told the Bard so far (voice or typed), same as the typed path.
+  const revealFromChat = async () => {
+    const said = lines.filter((l) => l.who === "you").map((l) => l.text).join(" ");
+    if (!said.trim()) return;
+    setBusy(true);
+    sentHome.current = true; // no second jump from the farewell timer
+    const { data } = await api.classify(said, sessionFan.current);
+    if (conversation.status === "connected") await conversation.endSession();
     goToOdyssey(data.fan_id);
   };
 
@@ -223,6 +253,11 @@ function Onboard() {
               {l.text}
             </motion.p>
           ))}
+          {heardYou && (
+            <button onClick={revealFromChat} disabled={busy} className="btn btn-primary mt-2 w-full disabled:opacity-60">
+              {busy ? "Opening your Odyssey…" : "Show my Odyssey →"}
+            </button>
+          )}
         </div>
       )}
 

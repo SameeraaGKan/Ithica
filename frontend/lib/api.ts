@@ -291,10 +291,10 @@ export const api = {
   },
 
   // The typed fallback on /onboard sends free text; the backend classifies it (Gemini, or rules offline).
-  classify: (answers: string) =>
+  classify: (answers: string, fanId?: string | null) =>
     call<ClassifyResult>(
       "/onboard/classify",
-      { method: "POST", body: JSON.stringify({ transcript: answers }) },
+      { method: "POST", body: JSON.stringify({ transcript: answers, fan_id: fanId ?? null }) },
       () => mockClassify(answers),
       (r) => ({ fan_id: r.fan_id, path: r.path, entry_era: eraIn(r.entry_era) }),
     ),
