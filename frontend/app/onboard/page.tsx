@@ -37,6 +37,13 @@ export default function Onboard() {
   );
 
   const conversation = useConversation({
+    // @elevenlabs/react 0.4.x passes these through as `undefined` when unset, which overwrites the client's
+    // no-op defaults and crashes on connect ("this.options.onConnect is not a function"). Define them all.
+    onConnect: () => setError(null),
+    onDisconnect: () => {},
+    onDebug: () => {},
+    onAudio: () => {},
+    onUnhandledClientToolCall: (call: unknown) => console.warn("[ithaca] agent called an unknown client tool:", call),
     onMessage: ({ message, source }: { message: string; source: string }) =>
       setLines((l): Line[] => [...l, { who: source === "user" ? ("you" as const) : ("bard" as const), text: message }].slice(-8)),
     onError: (e: unknown) => {
