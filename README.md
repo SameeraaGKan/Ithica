@@ -10,6 +10,8 @@ ITHACA brings both back. Returning fans are **Odysseus** ("you were there"). New
 
 ## The journey
 
+The home page first asks: **new or returning?** Returning fans go straight to the Bard. New fans watch **"FaZe in 40 seconds"**, a story-style montage from 2010 trickshots to today (every line from the curated lore), then start their Odyssey as Telemachus.
+
 Athena (the 🦉 in the corner) walks every fan through seven steps and ticks them off as they happen.
 
 | # | Step | What happens | Built with |
@@ -208,7 +210,7 @@ pytest -q                             # 43 tests, no keys needed
 
 ## Demo script (≈3 minutes)
 
-1. **Home → Talk to the Bard** (or **Enter as demo fan** if the Wi-Fi is shaky). "When did you find FaZe?" The map appears: *"You were there."*
+1. **Home → "I've been here before" → Talk to the Bard** (or **Enter as demo fan** if the Wi-Fi is shaky). To show the new-fan side, pick **"I'm new to FaZe"** for the 40-second montage. "When did you find FaZe?" The map appears: *"You were there."*
 2. **Tap 2013 · Rug Era.** The era's FaZe Clan videos appear. Open one.
 3. **On YouTube, the Siren slides in** with the story behind that moment. **Collect Relic.** Switch back: the relic and Drachmae are already on the Hub.
 4. **Prove it to the Oracle.** Hold up a FaZe hoodie. The Oracle names the item and year, says the clue it dated it by, and grants the relic. (On FaceTime, the relic card arrives by iMessage.)
