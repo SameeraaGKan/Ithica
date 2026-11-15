@@ -25,6 +25,8 @@ import type {
   Sourced,
   WarroomMetrics,
   WeeklyTrial,
+  RewardsStatus,
+  RewardClaim,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
@@ -74,6 +76,31 @@ const episodeIn = (ep: any): Episode => {
     script: ep.script,
   };
 };
+
+// Offline stand-in for the tier ladder (same shape as the backend).
+function mockRewards(fanId: string): RewardsStatus {
+  const relics = 3;
+  const tiers: [string, string, number, string, string][] = [
+    ["traveler", "Traveler", 1, "Ithaca badge + FaZe Discord role", "A profile badge on your Odyssey and a Traveler role in the FaZe Discord."],
+    ["sailor", "Sailor", 5, "Era wallpaper pack", "Phone and desktop wallpapers for every era you've collected."],
+    ["hero", "Hero", 10, "Early access to Era Drops + 15% off", "Shop the next era merch drop 24 hours early, with 15% off."],
+    ["legend", "Legend", 20, "Limited Legend merch", "A numbered, Legends-only piece."],
+  ];
+  return {
+    fan_id: fanId, relics, relics_total: 31, has_pass: false,
+    tier: { id: "traveler", name: "Traveler", relics_needed: 1 },
+    next_tier: { id: "sailor", name: "Sailor", relics_needed: 5, relics_to_go: 2 },
+    rewards: [
+      ...tiers.map(([id, tier, need, title, description]) => ({
+        id, tier, title, description, relics_needed: need, requires_pass: false, unlocked: relics >= need, claimed: false,
+      })),
+      { id: "meet_greet", tier: "Odyssey Pass", title: "Meet your FaZe favorite", relics_needed: 0, requires_pass: true,
+        description: "Odyssey Pass holders are entered into the monthly virtual meet & greet with the FaZe member they pick.",
+        unlocked: false, claimed: false },
+    ],
+    faze_members: ["Rug", "Banks", "Apex", "Swagg", "Jarvis", "Adapt", "Kaysan", "Lacy", "Stable Ronaldo", "Silky"],
+  };
+}
 
 // ---------------------------------------------------------------- transport
 async function raw(path: string, init?: RequestInit, timeoutMs = TIMEOUT_MS): Promise<any> {
@@ -185,6 +212,25 @@ export const api = {
       }),
       ORACLE_TIMEOUT_MS,
     ),
+
+  // Tier system: relic-count tiers + the Pass-only meet & greet.
+  rewards: (fanId: string) =>
+    call<RewardsStatus>(`/rewards/${encodeURIComponent(fanId)}`, undefined, () => mockRewards(fanId)),
+
+  // Throws with the backend's reason (locked, pick a member...) so the page can show it.
+  async claimReward(fanId: string, rewardId: string, member?: string): Promise<RewardClaim> {
+    if (!API_BASE) {
+      return { reward_id: rewardId, code: "ITH-DEMO", member, message: member ? `Entered for a meet & greet with FaZe ${member}.` : "Unlocked (demo)." };
+    }
+    const res = await fetch(`${API_BASE}/rewards/${encodeURIComponent(fanId)}/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reward_id: rewardId, member }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || `claim failed (${res.status})`);
+    return body as RewardClaim;
+  },
 
   // This week's Bow Trial (prompt + sponsor), shown on the Oracle page.
   trial: () =>

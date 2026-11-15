@@ -460,3 +460,30 @@ async def twitch_overlay():
     from fastapi.responses import FileResponse
     from app.config import BASE_DIR
     return FileResponse(BASE_DIR / "static" / "twitch.html")
+
+
+# ------------------------------------------------------------- tiers + rewards
+@router.get("/rewards/{fan_id}", tags=["rewards"],
+            description="Tier ladder: relic-count tiers (Traveler 1, Sailor 5, Hero 10, Legend 20) + the Pass-only meet & greet.")
+async def rewards_status(fan_id: str):
+    from app.services import rewards
+    s = await rewards.status(fan_id)
+    if s is None:
+        raise HTTPException(404, "unknown fan")
+    return s
+
+
+@router.post("/rewards/{fan_id}/claim", tags=["rewards"], description="Body: {reward_id, member?}. member is required for meet_greet.")
+async def rewards_claim(fan_id: str, payload: dict, authorization: Optional[str] = Header(default=None)):
+    from app.services import rewards
+    check_fan(fan_id, authorization)
+    try:
+        return await rewards.claim(fan_id, payload.get("reward_id", ""), payload.get("member"))
+    except LookupError:
+        raise HTTPException(404, "unknown fan")
+    except KeyError:
+        raise HTTPException(404, "unknown reward")
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))

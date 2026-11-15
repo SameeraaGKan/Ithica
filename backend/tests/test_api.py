@@ -167,3 +167,22 @@ def test_hub_contract(c):
     assert m["funnel"] and "generated_at" in m and {"pass_cents", "drops_cents", "sponsored_cents"} <= set(m["daily"][0])
     lb = c.get("/trials/leaderboard").json()["suitors"]
     assert "path" in lb[0] and "drachmae" in lb[0]
+
+
+def test_rewards_tiers_and_pass(c):
+    f = c.post("/onboard/classify", json={"handle": "tier", "first_found_year": 2014}).json()["fan_id"]
+    s = c.get(f"/rewards/{f}").json()
+    assert s["relics"] == 0 and s["tier"] is None and s["next_tier"]["id"] == "traveler"
+    assert c.post(f"/rewards/{f}/claim", json={"reward_id": "traveler"}).status_code == 403
+    c.post("/siren/collect", json={"fan_id": f})  # one relic -> Traveler
+    s = c.get(f"/rewards/{f}").json()
+    assert s["tier"]["id"] == "traveler" and s["next_tier"]["relics_to_go"] == 4
+    claim = c.post(f"/rewards/{f}/claim", json={"reward_id": "traveler"}).json()
+    assert claim["code"].startswith("ITH-")
+    mg = next(r for r in c.get(f"/rewards/{f}").json()["rewards"] if r["id"] == "meet_greet")
+    assert mg["requires_pass"] and not mg["unlocked"]
+    assert c.post(f"/rewards/{f}/claim", json={"reward_id": "meet_greet", "member": "Rug"}).status_code == 403
+    c.post("/pass/checkout", params={"fan_id": f})
+    assert c.post(f"/rewards/{f}/claim", json={"reward_id": "meet_greet"}).status_code == 422  # must pick a member
+    ok = c.post(f"/rewards/{f}/claim", json={"reward_id": "meet_greet", "member": "Rug"}).json()
+    assert "Rug" in ok["message"]

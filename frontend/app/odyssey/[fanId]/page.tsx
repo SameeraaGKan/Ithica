@@ -86,11 +86,11 @@ export default function OdysseyPage() {
           <DailyOmen fanId={fan.id} />
           <ShareRecap fanId={fan.id} />
           <div className="card border-gold/40 bg-gradient-to-br from-gold/10 to-transparent">
-            <p className="eyebrow">Odyssey Pass</p>
-            <h3 className="display mt-1 text-2xl">Premium episodes + early Era Drops</h3>
-            <p className="mt-2 text-sm text-muted">$4.99 / season. Exclusive Oracle trials and first access to era merch reprints.</p>
-            <Link href="/pass" className="btn btn-gold mt-4">
-              Get the Pass
+            <p className="eyebrow">Tiers · {data.relics.length} relics</p>
+            <h3 className="display mt-1 text-2xl">More relics, more rewards</h3>
+            <p className="mt-2 text-sm text-muted">Badges, wallpapers, early Era Drops and Legend-only merch. The Odyssey Pass unlocks a meet &amp; greet with your FaZe favorite.</p>
+            <Link href="/tiers" className="btn btn-gold mt-4">
+              See your tier
             </Link>
           </div>
           {source === "mock" && (

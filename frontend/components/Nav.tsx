@@ -7,7 +7,7 @@ const LINKS = [
   { href: "/", label: "Home", match: "/" },
   { href: `/odyssey/${DEMO_FAN_ID}`, label: "My Odyssey", match: "/odyssey" },
   { href: "/oracle-cam", label: "Oracle", match: "/oracle-cam" },
-  { href: "/pass", label: "Pass", match: "/pass" },
+  { href: "/tiers", label: "Tiers", match: "/tiers" },
   { href: "/warroom", label: "War Room", match: "/warroom" },
 ];
 

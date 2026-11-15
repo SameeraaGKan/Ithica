@@ -117,3 +117,32 @@ export interface Sourced<T> {
   data: T;
   source: DataSource;
 }
+
+// Tier system (backend GET /rewards/{fan_id})
+export interface Reward {
+  id: string;
+  tier: string;
+  title: string;
+  description: string;
+  relics_needed: number;
+  requires_pass: boolean;
+  unlocked: boolean;
+  claimed: boolean;
+  claim?: RewardClaim | null;
+}
+export interface RewardClaim {
+  reward_id: string;
+  code: string;
+  member?: string | null;
+  message: string;
+}
+export interface RewardsStatus {
+  fan_id: string;
+  relics: number;
+  relics_total: number;
+  has_pass: boolean;
+  tier: { id: string; name: string; relics_needed: number } | null;
+  next_tier: { id: string; name: string; relics_needed: number; relics_to_go: number } | null;
+  rewards: Reward[];
+  faze_members: string[];
+}
