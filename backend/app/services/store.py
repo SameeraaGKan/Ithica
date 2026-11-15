@@ -451,73 +451,6 @@ class PgStore(MemoryStore):
         return out
 
 
-def _funnel(onboarded, episodes, relics, trials, passes) -> list[dict]:
-    # ordered widest to narrowest so each step reads as a drop-off
-    return [{"stage": "Onboarded with the Bard", "count": onboarded}, {"stage": "Collected a relic", "count": relics},
-            {"stage": "Played a Bard episode", "count": episodes}, {"stage": "Entered a Bow Trial", "count": trials},
-            {"stage": "Bought the Odyssey Pass", "count": passes}]
-
-
-def _assemble(rows, rev, passes, era_demand, fans, *, simulated, backend, funnel=None) -> dict:
-    tot = lambda k: sum(r[k] for r in rows)
-    reactivated, new = tot("reactivated"), tot("new_fans")
-    return {
-        "simulated": simulated,
-        "backend": backend,
-        "generated_at": now().isoformat(),
-        "funnel": funnel or [],
-        "window_days": len(rows),
-        "totals": {
-            "fans": fans,
-            "reactivated_fans": reactivated,
-            "new_fans": new,
-            "dau_today": rows[-1]["active_fans"] if rows else 0,
-            "trial_entries": tot("trial_entries"),
-            "relics_collected": tot("relics"),
-            "episodes_played": tot("episodes"),
-            "sponsored_impressions": tot("sponsored_impressions"),
-            "pass_conversions": passes,
-            "pass_conversion_rate": round(passes / max(1, reactivated + new), 4),
-            "revenue_cents": sum(rev.values()),
-        },
-        "revenue_by_stream_cents": {
-            "odyssey_pass": rev.get("odyssey_pass", 0),
-            "era_drop": rev.get("era_drop", 0),
-            "sponsored_trial": rev.get("sponsored_trial", 0),
-        },
-        "era_drop_demand": {e: era_demand.get(e, 0) for e in ERAS},
-        "daily": rows,
-    }
-
-
-_store = None
-
-
-def store() -> MemoryStore:
-    global _store
-    if _store is None:
-        s = get_settings()
-        _store = PgStore(s.tiger_dsn) if s.has_tiger else MemoryStore()
-    return _store
-
-
-async def init_store() -> None:
-    global _store
-    st = store()
-    try:
-        await st.init()
-    except Exception as e:
-        log.warning("Tiger unavailable (%r) -> in-memory store", e)
-        _store = MemoryStore()
-        await _store.init()
-
-
-async def award(fan_id: str, type_: str, source: str, meta: Optional[dict] = None, drachmae: Optional[int] = None) -> int:
-    """Log an event and pay Drachmae in one call. Returns new balance."""
-    st = store()
-    await st.log_event(fan_id, type_, source, meta)
-    n = DRACHMAE.get(type_, 0) if drachmae is None else drachmae
-    return await st.add_drachmae(fan_id, n) if n else (await st.get_fan(fan_id) or {}).get("drachmae", 0)
 
     async def list_fan_relics(self, fan_id: str) -> list[dict]:
         cat = relic_catalog()
@@ -563,6 +496,7 @@ async def award(fan_id: str, type_: str, source: str, meta: Optional[dict] = Non
         funnel = _funnel(ft.get("onboard", 0), ft.get("episode_play", 0), ft.get("relic", 0), ft.get("trial_entry", 0), buyers)
         return _assemble(rows, {k: int(v) for k, v in rev.items()}, passes, era, fans, simulated=bool(simulated), backend=self.kind,
                          funnel=funnel)
+
 
 
 def _funnel(onboarded, episodes, relics, trials, passes) -> list[dict]:
