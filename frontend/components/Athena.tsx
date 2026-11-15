@@ -52,7 +52,7 @@ export default function Athena() {
     }
   };
   const [quest, setQuest] = useState<Quest | null>(null);
-  const [open, setOpen] = useState(true);
+  const [userOpen, setOpen] = useState<boolean | null>(null);
   const [list, setList] = useState(false);
 
   useEffect(() => {
@@ -77,6 +77,8 @@ export default function Athena() {
   const step = quest.current;
   const tip = PAGE_TIPS[path];
   const onStepPage = step && path === step.href.split(/[?#]/)[0];
+  // a finished quest starts as the small pill, so the full card doesn't cover every page
+  const open = userOpen ?? !!step;
 
   return (
     <div className="fixed bottom-4 right-4 z-40 w-[min(92vw,340px)]">
