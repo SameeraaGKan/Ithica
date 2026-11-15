@@ -55,7 +55,10 @@ export default function Onboard() {
   const start = async () => {
     setError(null);
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Ask for mic permission, then release it right away: the ElevenLabs SDK opens its own stream, and on some
+      // Windows / Bluetooth setups a second capture of the same mic receives silence while the first stays open.
+      const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+      probe.getTracks().forEach((t) => t.stop());
       // Part B's backend pre-creates the fan and hands back how to connect (signed URL keeps the agent private).
       const session = await api.bardSession();
       const showMap = async ({ fan_id }: { fan_id?: string }) => {
