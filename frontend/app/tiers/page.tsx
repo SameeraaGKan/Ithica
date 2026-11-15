@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import SourceBadge from "@/components/SourceBadge";
 import { api } from "@/lib/api";
-import { DEMO_FAN_ID } from "@/lib/mocks";
+import { currentFan } from "@/components/Athena";
 import type { Reward, RewardsStatus } from "@/lib/types";
 
 /*
@@ -17,15 +17,21 @@ export default function Tiers() {
   const [member, setMember] = useState("");
   const [note, setNote] = useState<Record<string, string>>({});
 
+  // same fan Athena follows (whoever's Odyssey was opened last, else the demo fan)
+  const [fan, setFan] = useState<string | null>(null);
+  useEffect(() => setFan(currentFan()), []);
+
   const load = useCallback(async () => {
-    const r = await api.rewards(DEMO_FAN_ID);
+    if (!fan) return;
+    const r = await api.rewards(fan);
     setS(r.data);
     setSource(r.source);
-  }, []);
+  }, [fan]);
   useEffect(() => {
+    if (!fan) return;
     load();
-    api.questMark(DEMO_FAN_ID, "tier"); // Athena: opening Tiers completes the journey
-  }, [load]);
+    api.questMark(fan, "tier"); // Athena: opening Tiers completes the journey
+  }, [load, fan]);
 
   if (!s) return <p className="py-20 text-center text-muted">Counting your relics…</p>;
 
@@ -36,7 +42,7 @@ export default function Tiers() {
 
   const claim = async (r: Reward, who?: string) => {
     try {
-      const c = await api.claimReward(DEMO_FAN_ID, r.id, who);
+      const c = await api.claimReward(fan!, r.id, who, source === "mock");
       setNote((n) => ({ ...n, [r.id]: c.message }));
       load();
     } catch (e) {
@@ -46,7 +52,7 @@ export default function Tiers() {
 
   const buyPass = async () => {
     setBuying(true);
-    await Promise.all([api.checkout(DEMO_FAN_ID), new Promise((res) => setTimeout(res, 900))]);
+    await Promise.all([api.checkout(fan!), new Promise((res) => setTimeout(res, 900))]);
     await load();
     setBuying(false);
   };

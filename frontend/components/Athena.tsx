@@ -20,7 +20,7 @@ export function rememberFan(fanId: string) {
     localStorage.setItem(FAN_KEY, fanId);
   } catch {}
 }
-function currentFan(): string {
+export function currentFan(): string {
   try {
     return localStorage.getItem(FAN_KEY) || DEMO_FAN_ID;
   } catch {

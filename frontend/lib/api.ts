@@ -81,6 +81,41 @@ const episodeIn = (ep: any): Episode => {
   };
 };
 
+// Offline claims and Pass, kept in the browser so the Tiers page still works when the backend is unreachable.
+const CLAIMS_KEY = "ithaca_claims_offline";
+const PASS_KEY = "ithaca_pass_offline";
+function offlineClaims(): Record<string, RewardClaim> {
+  try {
+    return JSON.parse(localStorage.getItem(CLAIMS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+function offlinePass(): boolean {
+  try {
+    return localStorage.getItem(PASS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function offlineClaim(fanId: string, rewardId: string, member?: string): RewardClaim {
+  const r = mockRewards(fanId).rewards.find((x) => x.id === rewardId);
+  if (!r) throw new Error("Unknown reward.");
+  if (!r.unlocked) throw new Error(r.requires_pass ? "Get the Odyssey Pass to unlock this." : `Collect ${r.relics_needed} relics to unlock this.`);
+  if (r.requires_pass && !member) throw new Error("Pick the FaZe member you want to meet.");
+  const code = "ITH-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const claim: RewardClaim = {
+    reward_id: rewardId,
+    code,
+    member,
+    message: member ? `Entered for a meet & greet with FaZe ${member}. Your code: ${code}` : `Unlocked: ${r.title}. Your code: ${code}`,
+  };
+  try {
+    localStorage.setItem(CLAIMS_KEY, JSON.stringify({ ...offlineClaims(), [rewardId]: claim }));
+  } catch {}
+  return claim;
+}
+
 // Offline stand-in for the tier ladder (same shape as the backend).
 function mockRewards(fanId: string): RewardsStatus {
   const relics = 3;
@@ -91,7 +126,7 @@ function mockRewards(fanId: string): RewardsStatus {
     ["legend", "Legend", 20, "Limited Legend merch", "A numbered, Legends-only piece."],
   ];
   return {
-    fan_id: fanId, relics, relics_total: 31, has_pass: false,
+    fan_id: fanId, relics, relics_total: 31, has_pass: offlinePass(),
     tier: { id: "traveler", name: "Traveler", relics_needed: 1 },
     next_tier: { id: "sailor", name: "Sailor", relics_needed: 5, relics_to_go: 2 },
     rewards: [
@@ -100,8 +135,11 @@ function mockRewards(fanId: string): RewardsStatus {
       })),
       { id: "meet_greet", tier: "Odyssey Pass", title: "Meet your FaZe favorite", relics_needed: 0, requires_pass: true,
         description: "Odyssey Pass holders are entered into the monthly virtual meet & greet with the FaZe member they pick.",
-        unlocked: false, claimed: false },
-    ],
+        unlocked: offlinePass(), claimed: false },
+    ].map((r) => {
+      const c = offlineClaims()[r.id];
+      return c ? { ...r, claimed: true, claim: c } : r;
+    }),
     faze_members: ["Rug", "Banks", "Apex", "Swagg", "Jarvis", "Adapt", "Kaysan", "Lacy", "Stable Ronaldo", "Silky"],
   };
 }
@@ -304,15 +342,21 @@ export const api = {
     call<RewardsStatus>(`/rewards/${encodeURIComponent(fanId)}`, undefined, () => mockRewards(fanId)),
 
   // Throws with the backend's reason (locked, pick a member...) so the page can show it.
-  async claimReward(fanId: string, rewardId: string, member?: string): Promise<RewardClaim> {
-    if (!API_BASE) {
-      return { reward_id: rewardId, code: "ITH-DEMO", member, message: member ? `Entered for a meet & greet with FaZe ${member}.` : "Unlocked (demo)." };
+  async claimReward(fanId: string, rewardId: string, member?: string, offline = false): Promise<RewardClaim> {
+    // Page is on demo data (backend unreachable): claim in the browser instead of failing.
+    if (!API_BASE || offline) return offlineClaim(fanId, rewardId, member);
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/rewards/${encodeURIComponent(fanId)}/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reward_id: rewardId, member }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch (err) {
+      console.warn("[ithaca] claim: backend unreachable, claiming offline:", err);
+      return offlineClaim(fanId, rewardId, member);
     }
-    const res = await fetch(`${API_BASE}/rewards/${encodeURIComponent(fanId)}/claim`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reward_id: rewardId, member }),
-    });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.detail || `claim failed (${res.status})`);
     return body as RewardClaim;
@@ -420,7 +464,12 @@ export const api = {
     call<{ ok: boolean }>(
       `/pass/checkout?fan_id=${encodeURIComponent(fanId)}&sku=${encodeURIComponent(sku)}`,
       { method: "POST" },
-      () => ({ ok: true }),
+      () => {
+        try {
+          if (sku === "odyssey_pass") localStorage.setItem(PASS_KEY, "1");
+        } catch {}
+        return { ok: true };
+      },
     ),
 
   // P1 Daily Omen: today's lore question, and the fan's answer (same rules as the iMessage reply).
