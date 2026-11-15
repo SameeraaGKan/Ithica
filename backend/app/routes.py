@@ -309,7 +309,7 @@ async def tool_classify(req: ClassifyRequest):
 
 @router.post("/bard/agent/session", tags=["agent-tools"],
              description="Hub/bard page calls this before starting the voice session. Pre-creates the fan and returns how "
-                         "to connect: mode=signed (signed_url), public (agent_id) or unconfigured (use the text fallback). "
+                         "to connect: mode=webrtc (conversation_token), signed (signed_url), public (agent_id) or unconfigured (use the text fallback). "
                          "Pass dynamic_variables to the ElevenLabs SDK's startSession.")
 async def bard_agent_session(payload: Optional[dict] = None):
     from app.config import get_settings
@@ -319,10 +319,12 @@ async def bard_agent_session(payload: Optional[dict] = None):
     fan = await store().upsert_fan(payload.get("fan_id"), handle=payload.get("handle"))
     out = {"fan_id": fan["id"], "fan_token": fan_token(fan["id"]),
            "dynamic_variables": {"fan_id": fan["id"], "handle": fan.get("handle") or ""},
-           "agent_id": None, "signed_url": None, "mode": "unconfigured"}
+           "agent_id": None, "signed_url": None, "conversation_token": None, "mode": "unconfigured"}
     if s.has_bard_agent:
         if s.elevenlabs_agent_public:
             out.update(agent_id=s.elevenlabs_agent_id, mode="public")
+        elif token := await bard_agent.conversation_token():
+            out.update(agent_id=s.elevenlabs_agent_id, conversation_token=token, mode="webrtc")
         else:
             url = await bard_agent.signed_url()
             if url:

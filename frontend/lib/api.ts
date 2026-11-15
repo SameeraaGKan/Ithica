@@ -333,8 +333,9 @@ export const api = {
   // Part B: ask the backend how to connect the Bard voice agent. It pre-creates the fan and returns
   // mode "signed" (signed_url), "public" (agent_id) or "unconfigured" (use the typed path).
   async bardSession(handle?: string): Promise<{
-    mode: "signed" | "public" | "unconfigured";
+    mode: "webrtc" | "signed" | "public" | "unconfigured";
     signed_url: string | null;
+    conversation_token?: string | null;
     agent_id: string | null;
     fan_id: string;
     dynamic_variables: Record<string, string>;

@@ -2,7 +2,7 @@
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE, api } from "@/lib/api";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "";
@@ -45,9 +45,15 @@ function Onboard() {
     [router],
   );
 
+  const callId = useRef<string | null>(null);
+  const [say, setSay] = useState("");
   const conversation = useConversation({
     // Defined explicitly: older @elevenlabs/react (0.4.x) crashed on connect when these were unset.
-    onConnect: () => setError(null),
+    onConnect: ({ conversationId }: { conversationId?: string }) => {
+      setError(null);
+      callId.current = conversationId ?? null;
+      console.info("[ithaca] Bard call id:", conversationId);
+    },
     onDisconnect: (d: unknown) => {
       console.info("[ithaca] Bard disconnected:", d);
       // Show why the call ended, so a hang-up right after the greeting isn't a mystery.
@@ -59,7 +65,9 @@ function Onboard() {
           : `the agent ended the call${det.context?.code ? ` (code ${det.context.code})` : ""}${
               det.context?.reason ? `: ${det.context.reason}` : ""
             }`;
-      setError(`The Bard hung up: ${why}. Check the agent's conversation history in ElevenLabs, or use the typed path below.`);
+      setError(`The Bard hung up: ${why}. Run "python -m scripts.bard_doctor" in backend/ to see what ElevenLabs received${
+        callId.current ? ` (call ${callId.current})` : ""
+      }, or type to him below.`);
     },
     onDebug: (d: unknown) => console.debug("[ithaca] Bard debug:", d),
     onAudio: () => {},
@@ -85,8 +93,12 @@ function Onboard() {
         goToOdyssey(fan_id || session?.fan_id || "demo_odysseus");
         return "Map shown to the fan.";
       };
+      // WebRTC first: the browser applies echo cancellation + noise suppression, so the agent hears the fan
+      // instead of its own voice or silence. Signed websocket URL is the fallback.
       const connect =
-        session?.mode === "signed" && session.signed_url
+        session?.mode === "webrtc" && session.conversation_token
+          ? { conversationToken: session.conversation_token, connectionType: "webrtc" }
+          : session?.mode === "signed" && session.signed_url
           ? { signedUrl: session.signed_url }
           : session?.mode === "public" && session.agent_id
             ? { agentId: session.agent_id, connectionType: "webrtc" }
@@ -142,6 +154,13 @@ function Onboard() {
     return () => clearInterval(id);
   }, [live, conversation]);
   const heardYou = lines.some((l) => l.who === "you");
+  const sendSay = () => {
+    const t = say.trim();
+    if (!t) return;
+    conversation.sendUserMessage(t);
+    setLines((l): Line[] => [...l, { who: "you" as const, text: t }].slice(-8));
+    setSay("");
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-6 text-center">
@@ -182,8 +201,18 @@ function Onboard() {
               ? "No sound from your mic yet. Speak up, or pick the right microphone in Chrome (lock icon → Site settings)."
               : heardYou
                 ? "The Bard hears you."
-                : "Your mic works. If no 'You' line appears after you speak, the speech isn't being transcribed."}
+                : "Your mic works. If no 'You' line appears after you speak, type your answer here instead."}
           </p>
+          <div className="flex gap-2 pt-1">
+            <input
+              value={say}
+              onChange={(e) => setSay(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendSay()}
+              placeholder="Or type to the Bard… (e.g. 2013, Clayster, MW2)"
+              className="flex-1 rounded-xl border border-line bg-black/40 px-3 py-2 text-sm outline-none focus:border-gold"
+            />
+            <button className="btn btn-primary" onClick={sendSay}>Send</button>
+          </div>
         </div>
       )}
 

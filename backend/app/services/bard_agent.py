@@ -144,10 +144,35 @@ def agent_config(*, tool_ids: Optional[list[str]] = None, inline_tools: Optional
                 "dynamic_variables": {"dynamic_variable_placeholders": {"fan_id": "demo_odysseus", "handle": ""}},
             },
             "tts": {"voice_id": s.elevenlabs_voice_id},
-            "conversation": {"max_duration_seconds": 240},
+            # Spelled out so a PATCH can't leave the agent deaf: high-quality speech recognition, a normal turn
+            # timeout, and the client events the Hub needs (user_transcript is what shows the fan's own words).
+            "asr": {"quality": "high"},
+            "turn": {"turn_timeout": 7},
+            "conversation": {
+                "max_duration_seconds": 300,
+                "client_events": ["audio", "interruption", "user_transcript", "agent_response",
+                                  "agent_response_correction", "client_tool_call", "vad_score", "ping"],
+            },
         },
         "platform_settings": {"auth": {"enable_auth": not s.elevenlabs_agent_public}},
     }
+
+
+async def conversation_token() -> Optional[str]:
+    """Short-lived WebRTC token for a private agent. WebRTC gives the browser echo cancellation and noise
+    suppression, which is what lets the agent actually hear the fan on laptop mics. None if unavailable."""
+    s = get_settings()
+    if not (s.has_elevenlabs and s.has_bard_agent):
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=8) as c:
+            r = await c.get(f"{API}/convai/conversation/token", params={"agent_id": s.elevenlabs_agent_id},
+                            headers={"xi-api-key": s.elevenlabs_api_key})
+        r.raise_for_status()
+        return r.json().get("token")
+    except Exception as e:
+        log.warning("conversation token failed: %r", e)
+        return None
 
 
 async def signed_url() -> Optional[str]:

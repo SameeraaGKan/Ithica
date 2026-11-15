@@ -197,6 +197,7 @@ pytest -q                             # 36 tests, no keys needed
 | Symptom | Fix |
 |---|---|
 | Hub pages say **Mock** | `frontend/.env.local` is missing or unreadable (on Windows, write it with `Set-Content … -Encoding ascii`), or the backend isn't running on 8080 |
+| The Bard greets you but **can't hear you** / hangs up | Re-run `python -m scripts.setup_bard_agent` (re-applies speech recognition + transcript events), restart the backend, try again. Then `python -m scripts.bard_doctor` shows exactly what ElevenLabs heard on your last calls. During a call you can also type to the Bard. |
 | `/health` shows a key as `false` after adding it | Restart the backend: `--reload` doesn't pick up `.env` changes |
 | Oracle says **FALLBACK** | Gemini failed. The backend terminal prints why; usually a bad key or an outdated `GEMINI_MODEL` |
 | Episode has no ElevenLabs voice | The API key lacks **Text to Speech**; the backend logs `elevenlabs tts failed …`. The Hub reads the script with the browser voice meanwhile. Delete `backend/static/episodes.json` to regenerate |
