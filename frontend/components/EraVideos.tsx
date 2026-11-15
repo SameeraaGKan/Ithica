@@ -21,7 +21,7 @@ export default function EraVideos({ era, fanId, path }: { era: EraId; fanId: str
   }, [era, fanId]);
 
   return (
-    <div className="card">
+    <div id="era-videos" className="card scroll-mt-24">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="eyebrow">
@@ -43,6 +43,7 @@ export default function EraVideos({ era, fanId, path }: { era: EraId; fanId: str
             href={v.url}
             target="_blank"
             rel="noreferrer"
+            onClick={() => api.questMark(fanId, "era")}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}

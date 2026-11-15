@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { rememberFan } from "@/components/Athena";
 import DailyOmen from "@/components/DailyOmen";
 import DrachmaeCounter from "@/components/DrachmaeCounter";
 import EraVideos from "@/components/EraVideos";
@@ -47,6 +48,7 @@ export default function OdysseyPage() {
   // Poll every 3s so Siren relic collects show up live on the Hub.
   const { data, source, refresh } = usePoll(fetcher, 3000);
   const [picked, setPicked] = useState<EraId | null>(null); // map stop the fan tapped (default: their entry era)
+  useEffect(() => rememberFan(fanId), [fanId]); // Athena follows this fan
 
   if (!data) {
     return <div className="py-24 text-center font-display text-xl text-muted">The Bard is finding your place in the story…</div>;
@@ -72,7 +74,7 @@ export default function OdysseyPage() {
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
-          <EpisodePlayer episode={data.next_episode} others={data.episodes} />
+          <EpisodePlayer episode={data.next_episode} others={data.episodes} fanId={fan.id} />
           <DailyOmen fanId={fan.id} />
         </div>
         <div className="space-y-4 lg:col-span-2">

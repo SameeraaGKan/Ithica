@@ -162,3 +162,21 @@ export interface EraVideo {
   kind: "moment" | "search" | "upload";
   relic?: { id: string; name: string; rarity: string; collected: boolean } | null;
 }
+
+// Athena's quest (backend GET /quest/{fan_id})
+export interface QuestStep {
+  key: string;
+  title: string;
+  line: string;
+  cta: string;
+  href: string;
+  done: boolean;
+}
+export interface Quest {
+  fan_id: string;
+  handle?: string | null;
+  steps: QuestStep[];
+  completed: number;
+  total: number;
+  current: QuestStep | null;
+}

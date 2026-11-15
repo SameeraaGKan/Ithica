@@ -199,3 +199,21 @@ def test_siren_member_channels(c):
     ctx = lambda ch: c.get("/siren/context", params={"videoId": "vid9", "channel": ch}).json()["is_faze"]
     assert ctx("FaZe Clan") and ctx("FaZe Rug") and ctx("Swagg") and ctx("Stable Ronaldo") and ctx("@jarvis")
     assert not ctx("SwaggerGaming") and not ctx("MrBeast") and not ctx("Rugby Highlights")
+
+
+def test_athena_quest(c):
+    f = c.post("/onboard/classify", json={"handle": "q", "first_found_year": 2013}).json()["fan_id"]
+    q = c.get(f"/quest/{f}").json()
+    assert q["total"] == 7 and q["steps"][0]["done"] and q["current"]["key"] == "era"
+    q = c.post(f"/quest/{f}/mark", json={"step": "era"}).json()
+    assert q["current"]["key"] == "siren"
+    c.post("/siren/collect", json={"fan_id": f, "video_id": "abc", "channel": "FaZe Clan"})
+    assert c.get(f"/quest/{f}").json()["current"]["key"] == "oracle"
+    c.post("/oracle/frame", files={"image": ("f.jpg", JPG, "image/jpeg")}, data={"mode": "argos", "fan_id": f})
+    c.post(f"/quest/{f}/mark", json={"step": "song"})
+    c.post("/oracle/frame", files={"image": ("f.jpg", JPG, "image/jpeg")}, data={"mode": "bow_trial", "fan_id": f})
+    assert c.get(f"/quest/{f}").json()["current"]["key"] == "tier"
+    c.post(f"/rewards/{f}/claim", json={"reward_id": "traveler"})
+    q = c.get(f"/quest/{f}").json()
+    assert q["completed"] == 7 and q["current"] is None
+    assert c.post(f"/quest/{f}/mark", json={"step": "nope"}).status_code == 422

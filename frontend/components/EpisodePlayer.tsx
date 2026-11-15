@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
 import { eraById } from "@/lib/eras";
 import type { Episode } from "@/lib/types";
 
@@ -9,7 +10,15 @@ import type { Episode } from "@/lib/types";
   - Narration: the ElevenLabs mp3 when the backend made one; otherwise the browser reads the script aloud.
   - Video: the real clip when the lore has a video_id; otherwise a Bard card + a link to find it on YouTube.
 */
-export default function EpisodePlayer({ episode, others }: { episode: Episode | null; others: Episode[] }) {
+export default function EpisodePlayer({
+  episode,
+  others,
+  fanId,
+}: {
+  episode: Episode | null;
+  others: Episode[];
+  fanId?: string;
+}) {
   const [current, setCurrent] = useState<Episode | null>(episode);
   const [audioFailed, setAudioFailed] = useState(false);
   const [started, setStarted] = useState(false);
@@ -64,6 +73,7 @@ export default function EpisodePlayer({ episode, others }: { episode: Episode | 
 
   const play = () => {
     setStarted(true);
+    if (fanId) api.questMark(fanId, "song"); // Athena: the Bard's song is heard
     if (useBrowserVoice) speak();
   };
 
@@ -77,7 +87,7 @@ export default function EpisodePlayer({ episode, others }: { episode: Episode | 
     : null;
 
   return (
-    <div className="card">
+    <div id="bard-song" className="card scroll-mt-24">
       <p className="eyebrow">The Bard Sings</p>
       <h2 className="display mt-1 text-3xl">{current.title}</h2>
       <p className="text-sm text-muted">

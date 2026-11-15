@@ -539,3 +539,21 @@ async def era_videos(era: str, fan_id: Optional[str] = None, limit: int = Query(
                       "start_s": 0, "url": f"https://www.youtube.com/watch?v={v['video_id']}",
                       "thumbnail": f"https://i.ytimg.com/vi/{v['video_id']}/hqdefault.jpg", "kind": "upload", "relic": None})
     return {"era": era, "label": ERA_LABELS[era], "videos": items[:limit]}
+
+
+# ------------------------------------------------------------- Athena's quest (the guide)
+@router.get("/quest/{fan_id}", tags=["quest"], description="Athena's 7-step journey for this fan: which steps are done and what's next.")
+async def quest_progress(fan_id: str):
+    from app.services import quest
+    q = await quest.progress(fan_id)
+    if q is None:
+        raise HTTPException(404, "unknown fan")
+    return q
+
+
+@router.post("/quest/{fan_id}/mark", tags=["quest"], description="Hub-only steps with no event of their own: {step: 'era' | 'song'}.")
+async def quest_mark(fan_id: str, payload: dict):
+    from app.services import quest
+    if not await quest.mark(fan_id, payload.get("step", "")):
+        raise HTTPException(422, "step must be 'era' or 'song'")
+    return await quest.progress(fan_id)

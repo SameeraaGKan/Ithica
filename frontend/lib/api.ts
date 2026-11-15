@@ -28,6 +28,7 @@ import type {
   RewardsStatus,
   RewardClaim,
   EraVideo,
+  Quest,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
@@ -215,6 +216,13 @@ export const api = {
       }),
       ORACLE_TIMEOUT_MS,
     ),
+
+  // Athena's quest: the 7-step journey and what to do next.
+  quest: (fanId: string) =>
+    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}`, undefined, () => null),
+  // Hub-only steps (opening an era video, playing the Bard's song) have no backend event of their own.
+  questMark: (fanId: string, step: "era" | "song") =>
+    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}/mark`, { method: "POST", body: JSON.stringify({ step }) }, () => null),
 
   // Videos for one era of the map; opening one on YouTube is where the Siren takes over.
   eraVideos: (era: EraId, fanId?: string) =>

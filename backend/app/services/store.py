@@ -163,6 +163,10 @@ class MemoryStore:
         self.fan_relics[fan_id][relic_id] = rec
         return {**r, **rec}, False
 
+    async def fan_event_kinds(self, fan_id: str) -> set[tuple[str, str]]:
+        """Distinct (type, source) pairs this fan has generated: powers Athena's quest."""
+        return {(e["type"], e["source"]) for e in self.events if e["fan_id"] == fan_id}
+
     async def list_fan_relics(self, fan_id: str) -> list[dict]:
         cat = relic_catalog()
         return [{**cat[rid], **rec} for rid, rec in self.fan_relics.get(fan_id, {}).items() if rid in cat]
@@ -383,6 +387,11 @@ class PgStore(MemoryStore):
             if already:
                 row = await c.fetchrow("SELECT earned_at, via FROM fan_relics WHERE fan_id=$1 AND relic_id=$2", fan_id, relic_id)
         return {**r, "earned_at": row["earned_at"].isoformat(), "via": row["via"]}, already
+
+    async def fan_event_kinds(self, fan_id: str) -> set[tuple[str, str]]:
+        async with self.pool.acquire() as c:
+            rows = await c.fetch("SELECT DISTINCT type, source FROM events WHERE fan_id=$1", fan_id)
+        return {(r["type"], r["source"]) for r in rows}
 
     async def list_fan_relics(self, fan_id: str) -> list[dict]:
         cat = relic_catalog()
