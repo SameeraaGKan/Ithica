@@ -83,7 +83,14 @@ async def episode(*, era: str, path: str, topic: Optional[str] = None, voice: bo
     hit = _cache.get(key)
     s = get_settings()
     stale = hit and hit.generated_by == "template" and s.has_gemini
-    if hit and not stale and (hit.audio_url or not voice or not s.has_elevenlabs):
+    if hit and not stale and voice and not tts.is_good_voice(hit.audio_url) and (s.has_elevenlabs or s.has_gemini):
+        # cached script but no audio, or the robotic built-in voice: try a real voice again (script stays the same)
+        audio = await tts.narrate(hit.script)
+        if audio and audio != hit.audio_url:
+            hit = hit.model_copy(update={"audio_url": audio})
+            _cache[key] = hit
+            _save_cache()
+    if hit and not stale and (hit.audio_url or not voice or not (s.has_elevenlabs or s.has_gemini)):
         L = lore()
         cues = [c if c.url else c.model_copy(update={"url": youtube_url(L.by_id[c.lore_id])}) if c.lore_id in L.by_id else c
                 for c in hit.cues]

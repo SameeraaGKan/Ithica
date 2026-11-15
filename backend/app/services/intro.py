@@ -26,7 +26,15 @@ LINES = [
 ]
 
 
+_sem = asyncio.Semaphore(3)  # gentle on free-tier rate limits (Gemini TTS backup)
+
+
+async def _one(text: str):
+    async with _sem:
+        return await tts.narrate(text, local_fallback=False)
+
+
 async def narration() -> dict:
-    urls = await asyncio.gather(*(tts.narrate(t, local_fallback=False) for t in LINES), return_exceptions=True)
+    urls = await asyncio.gather(*(_one(t) for t in LINES), return_exceptions=True)
     return {"voice": "bard",
             "lines": [{"text": t, "audio_url": u if isinstance(u, str) else None} for t, u in zip(LINES, urls)]}

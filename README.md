@@ -63,7 +63,7 @@ flowchart TB
 **Only the backend talks to the AI and data services.** Every client just calls the API. Every service is optional, and each has a fallback so the demo never goes silent:
 
 - **Oracle and Bard scripts:** Gemini → local Ollama model → labelled canned answer
-- **Narration:** ElevenLabs → the computer's built-in voice (macOS / Windows) → the browser reads the script
+- **Narration:** ElevenLabs → Gemini TTS (free tier, same key) → the computer's built-in voice (episodes only) → the browser reads the script
 - **Lore search:** Atlas vector search → keyword search
 - **Database:** Tiger Data → in-memory store
 - **Hub:** if the backend can't be reached, Athena and the era videos still work from the browser
@@ -228,6 +228,7 @@ pytest -q                             # 43 tests, no keys needed
 | The Bard greets you but **can't hear you** / hangs up | Re-run `python -m scripts.setup_bard_agent` (re-applies speech recognition + transcript events), restart the backend, try again. Then `python -m scripts.bard_doctor` shows exactly what ElevenLabs heard on your last calls. During a call you can also type to the Bard. |
 | `/health` shows a key as `false` after adding it | Restart the backend: `--reload` doesn't pick up `.env` changes |
 | Oracle says **FALLBACK** | Gemini failed. The backend terminal prints why; usually a bad key or an outdated `GEMINI_MODEL` |
+| `quota_exceeded` from ElevenLabs | Free credits are used up for the month. Narration switches to Gemini TTS automatically. Spend credits on what you'll show: `python -m scripts.pregen_episodes --intro-only` voices just the montage. `ELEVENLABS_MODEL=eleven_flash_v2_5` (the default) costs half per character |
 | Episode has no ElevenLabs voice | The API key lacks **Text to Speech**; the backend logs `elevenlabs tts failed …`. The Hub reads the script with the browser voice meanwhile. Delete `backend/static/episodes.json` to regenerate |
 | `setup_bard_agent`: `missing the permission convai_write` | Give the ElevenLabs key **Agents: Write** (or remove the restrictions) |
 | Siren stuck on **Offline lore** | ⚙ settings: API base `http://127.0.0.1:8080`, then **Save**. Reload the extension after a `git pull` |

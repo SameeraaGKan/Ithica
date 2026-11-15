@@ -20,7 +20,12 @@ class Settings(BaseSettings):
     # ElevenLabs
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"  # replace with the Bard voice
-    elevenlabs_model: str = "eleven_multilingual_v2"
+    elevenlabs_model: str = "eleven_flash_v2_5"  # half the credits per character of multilingual_v2
+    # Narration order. Gemini TTS is the free-tier backup when ElevenLabs credits run out (natural voice, same key
+    # as the Bard's scripts). The computer's built-in voice is the last resort for episodes only.
+    tts_providers: str = "elevenlabs,gemini"
+    gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
+    gemini_tts_voice: str = "Charon"  # deep, steady storyteller
     # Part B: the Bard onboarding agent (ElevenLabs Agents). Create it with `python -m scripts.setup_bard_agent`.
     elevenlabs_agent_id: str = ""
     elevenlabs_agent_llm: str = "gemini-2.5-flash"
