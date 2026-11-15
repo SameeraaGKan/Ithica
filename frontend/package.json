@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@elevenlabs/react": "^0.4.0",
+    "@elevenlabs/react": "^1.22.1",
     "framer-motion": "^12.23.0",
     "next": "^15.5.0",
     "react": "^19.1.0",

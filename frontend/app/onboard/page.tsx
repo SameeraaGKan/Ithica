@@ -1,5 +1,5 @@
 "use client";
-import { useConversation } from "@elevenlabs/react";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -15,7 +15,16 @@ type Line = { who: "bard" | "you"; text: string };
   session (POST /bard/agent/session: signed URL + the pre-created fan_id as a dynamic variable). The agent's
   server tool calls POST /tools/classify_fan; its client tool show_odyssey_map routes the fan to their map.
 */
-export default function Onboard() {
+// @elevenlabs/react 1.x: useConversation must live inside a ConversationProvider.
+export default function OnboardPage() {
+  return (
+    <ConversationProvider>
+      <Onboard />
+    </ConversationProvider>
+  );
+}
+
+function Onboard() {
   const router = useRouter();
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +46,7 @@ export default function Onboard() {
   );
 
   const conversation = useConversation({
-    // @elevenlabs/react 0.4.x passes these through as `undefined` when unset, which overwrites the client's
-    // no-op defaults and crashes on connect ("this.options.onConnect is not a function"). Define them all.
+    // Defined explicitly: older @elevenlabs/react (0.4.x) crashed on connect when these were unset.
     onConnect: () => setError(null),
     onDisconnect: (d: unknown) => {
       console.info("[ithaca] Bard disconnected:", d);
