@@ -1,5 +1,6 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { eraById } from "@/lib/eras";
 import type { Relic } from "@/lib/types";
 
@@ -12,7 +13,25 @@ const RARITY = {
 
 const VIA_LABEL = { web: "Ithaca", ext: "Siren", facetime: "Oracle", imessage: "Daily Omen" } as const;
 
+// Columns match the grid classes below: 2 on phones, 4 from the `sm` breakpoint (640px) up.
+function useColumns() {
+  const [cols, setCols] = useState(4);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const update = () => setCols(mq.matches ? 4 : 2);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return cols;
+}
+
 export default function RelicGrid({ earned, locked }: { earned: Relic[]; locked: Relic[] }) {
+  // Start with 2 rows; every full row of relics you collect reveals one more row.
+  const cols = useColumns();
+  const rows = 2 + Math.floor(earned.length / cols);
+  const lockedShown = locked.slice(0, Math.max(0, rows * cols - earned.length));
+  const hidden = locked.length - lockedShown.length;
   return (
     <div className="card">
       <div className="flex items-baseline justify-between">
@@ -45,7 +64,7 @@ export default function RelicGrid({ earned, locked }: { earned: Relic[]; locked:
               </p>
             </motion.div>
           ))}
-          {locked.map((r) => (
+          {lockedShown.map((r) => (
             <div key={r.id} className="group relative rounded-xl border border-dashed border-line p-3 opacity-50 transition hover:opacity-100 hover:border-faze/60">
               <div className="flex aspect-square items-center justify-center rounded-lg bg-black/40 text-3xl grayscale">🔒</div>
               <p className="mt-2 text-sm font-semibold group-hover:hidden">???</p>
@@ -61,6 +80,11 @@ export default function RelicGrid({ earned, locked }: { earned: Relic[]; locked:
           ))}
         </AnimatePresence>
       </div>
+      {hidden > 0 && (
+        <p className="mt-4 text-center text-xs uppercase tracking-widest text-muted">
+          +{hidden} more relic{hidden === 1 ? "" : "s"} to discover · collect {cols - (earned.length % cols)} more to reveal the next row
+        </p>
+      )}
     </div>
   );
 }
