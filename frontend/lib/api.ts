@@ -124,6 +124,40 @@ async function raw(path: string, init?: RequestInit, timeoutMs = TIMEOUT_MS): Pr
   }
 }
 
+// Athena without a backend: same 7 steps as backend/app/services/quest.py, ticked off in localStorage,
+// so she never disappears when the backend is down, stale or restarted.
+const QUEST_STEPS: [string, string, string, string, string][] = [
+  ["bard", "Meet the Bard", "Tell the Bard where your voyage began, and he'll find your place in the saga.", "Talk to the Bard", "/onboard"],
+  ["era", "Return to your era", "Your era glows on the map. Open a moment from it.", "Show my era", "/odyssey/{fan}#era-videos"],
+  ["siren", "Hear the Siren", "Watch it on YouTube. The Siren will sing its story. Collect the relic she offers.", "Pick a video", "/odyssey/{fan}#era-videos"],
+  ["oracle", "Prove it to the Oracle", "Words are cheap. Show the Oracle your FaZe merch and let her judge.", "Face the Oracle", "/oracle-cam?mode=argos"],
+  ["song", "The Bard's song", "You've earned your song. Let the Bard sing your era.", "Play my episode", "/odyssey/{fan}#bard-song"],
+  ["bow", "String the bow", "Only the true king strings the bow. Show the Oracle your best trickshot.", "Take the Bow Trial", "/oracle-cam?mode=bow_trial"],
+  ["tier", "Claim your reward", "Your relics have raised you. Claim what you've earned.", "Open my tier", "/tiers"],
+];
+const OFFLINE_KEY = "ithaca_quest_offline";
+function offlineDone(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '["bard"]');
+  } catch {
+    return ["bard"];
+  }
+}
+function offlineMark(step: string) {
+  try {
+    const d = new Set(offlineDone());
+    d.add(step);
+    localStorage.setItem(OFFLINE_KEY, JSON.stringify([...d]));
+  } catch {}
+}
+function offlineQuest(fanId: string): Quest {
+  const done = new Set(offlineDone());
+  const steps = QUEST_STEPS.map(([key, title, line, cta, href]) => ({
+    key, title, line, cta, href: href.replace("{fan}", encodeURIComponent(fanId)), done: done.has(key),
+  }));
+  return { fan_id: fanId, steps, completed: steps.filter((s) => s.done).length, total: steps.length, current: steps.find((s) => !s.done) ?? null };
+}
+
 // When the backend is down, old (not pulled) or has no lore for an era, still show cards that open the
 // FaZe Clan channel's own search, so the map -> YouTube -> Siren step never dead-ends.
 const ERA_SEARCHES: Record<EraId, [string, string, string][]> = {
@@ -243,10 +277,14 @@ export const api = {
 
   // Athena's quest: the 7-step journey and what to do next.
   quest: (fanId: string) =>
-    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}`, undefined, () => null),
+    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}`, undefined, () => offlineQuest(fanId)),
   // Hub-only steps (opening an era video, playing the Bard's song) have no backend event of their own.
-  questMark: (fanId: string, step: string) =>
-    call<Quest | null>(`/quest/${encodeURIComponent(fanId)}/mark`, { method: "POST", body: JSON.stringify({ step }) }, () => null),
+  questMark: (fanId: string, step: string) => {
+    offlineMark(step);
+    return call<Quest | null>(`/quest/${encodeURIComponent(fanId)}/mark`, { method: "POST", body: JSON.stringify({ step }) }, () =>
+      offlineQuest(fanId),
+    );
+  },
 
   // Videos for one era of the map; opening one on YouTube is where the Siren takes over.
   eraVideos: (era: EraId, fanId?: string) =>

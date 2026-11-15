@@ -549,7 +549,10 @@ async def quest_progress(fan_id: str):
     from app.services import quest
     q = await quest.progress(fan_id)
     if q is None:
-        raise HTTPException(404, "unknown fan")
+        # The browser remembers its fan across backend restarts (the memory store forgets): start them fresh
+        # instead of 404ing, which used to make Athena vanish.
+        await store().upsert_fan(fan_id)
+        q = await quest.progress(fan_id)
     return q
 
 
