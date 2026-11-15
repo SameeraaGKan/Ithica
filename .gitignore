@@ -1,4 +1,6 @@
 .env
+.env.local
+backend/data/imessage_optin.json
 .venv/
 __pycache__/
 *.pyc

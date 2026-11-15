@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"  # replace with the Bard voice
     elevenlabs_model: str = "eleven_multilingual_v2"
+    # Part B: the Bard onboarding agent (ElevenLabs Agents). Create it with `python -m scripts.setup_bard_agent`.
+    elevenlabs_agent_id: str = ""
+    elevenlabs_agent_llm: str = "gemini-2.5-flash"
+    elevenlabs_agent_public: bool = False  # true = browser connects with agent_id; false = we mint signed URLs
+
+    # Part B: Chert (iMessage send/receive; FaceTime runs through oracle_agent/ + `chert dev`)
+    chert_api_key: str = ""                 # Bearer key from the Chert console (docs call it the signing secret)
+    chert_base_url: str = "https://console.trychert.com/api/v1"
+    chert_webhook_secret: str = ""          # subscription secret, verifies X-Webhook-Signature on inbound events
+    chert_line: str = ""                    # the Oracle's phone number, shown in texts ("FaceTime +1...")
+    chert_optin_path: Path = BASE_DIR / "data" / "imessage_optin.json"  # phones that texted OMEN (gitignored)
 
     # MongoDB Atlas (lore)
     mongodb_uri: str = ""
@@ -60,6 +71,14 @@ class Settings(BaseSettings):
     @property
     def has_elevenlabs(self) -> bool:
         return bool(self.elevenlabs_api_key)
+
+    @property
+    def has_chert(self) -> bool:
+        return bool(self.chert_api_key)
+
+    @property
+    def has_bard_agent(self) -> bool:
+        return bool(self.elevenlabs_agent_id)
 
     @property
     def has_mongo(self) -> bool:

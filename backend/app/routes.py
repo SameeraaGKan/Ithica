@@ -4,14 +4,14 @@ import logging
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
 
 from app.auth import check_fan, fan_token, require_service_key
 
 from app.schemas import (ERA_LABELS, ERAS, AskRequest, AskResponse, Omen, OmenAnswer, OmenResult, ClassifyRequest, ClassifyResponse, CollectRequest, CollectResponse,
                          EpisodeRequest, EpisodeResponse, EraNode, OdysseyResponse, OracleVerdict, RelicOut,
                          SirenContext)
-from app.services import bard, omen, oracle
+from app.services import bard, chert, omen, oracle
 from app.services.classify import bard_line, classify
 from app.services.lore import lore
 from app.services.store import PRICES, award, relic_catalog, store
@@ -115,16 +115,25 @@ async def oracle_frame(request: Request):
                               source=f.get("source", "web"))
 
 
-# ------------------------------------------------------------- chert (B wires the exact payload)
-@router.post("/chert/webhook", tags=["chert"], dependencies=[Depends(require_service_key)])
-async def chert_webhook(request: Request):
-    """Placeholder until we see Chert's real payload. If it carries an image + mode, we judge it
-    and return `say` text. B: adapt the field names here once Chert docs are in hand."""
+# ------------------------------------------------------------- chert (Part B)
+@router.post("/chert/webhook", tags=["chert"],
+             description="Chert webhook subscription target (event `message.received`). Verifies X-Webhook-Signature "
+                         "when CHERT_WEBHOOK_SECRET is set; otherwise falls back to the service key (?key= works).")
+async def chert_webhook(request: Request, background: BackgroundTasks):
+    import json as _json
+    from app.config import get_settings
+    s = get_settings()
+    raw = await request.body()
+    if s.chert_webhook_secret:
+        if not chert.verify_signature({k.lower(): v for k, v in request.headers.items()}, raw, s.chert_webhook_secret):
+            raise HTTPException(401, "bad Chert signature")
+    else:
+        await require_service_key(request.headers.get("x-ithaca-key"), request.query_params.get("key"))
     try:
-        body = await request.json()
+        body = _json.loads(raw or b"{}")
     except Exception:
-        body = {}
-    log.info("chert webhook: keys=%s", list(body.keys()))
+        raise HTTPException(400, "body must be JSON")
+    # legacy direct-frame shape (pre-Chert-docs placeholder) still judged inline
     img = body.get("image_b64") or body.get("frame")
     if img:
         m = _DATAURL.match(img)
@@ -133,7 +142,64 @@ async def chert_webhook(request: Request):
         v = await oracle.judge(data, m.group(1) if m else "image/jpeg", body.get("mode", "argos"),
                                fan_id=fan["id"], source="facetime")
         return {"say": v.spoken, "verdict": v.model_dump(), "fan_id": fan["id"]}
-    return {"ok": True}
+    # ack fast; Chert retries slow webhooks. The reply goes out in the background.
+    if chert.parse_inbound(body):
+        background.add_task(chert.handle_inbound, body)
+        return {"ok": True, "queued": True}
+    return {"ok": True, "ignored": True}
+
+
+_ft_sent: set[tuple[str, str]] = set()  # (call_id, mode) -> iMessage card already sent this call
+
+
+@router.post("/chert/facetime/start", tags=["chert"], dependencies=[Depends(require_service_key)],
+             description="Called by oracle_agent when a FaceTime caller joins. {call_id, phone?} -> {fan_id, greeting}.")
+async def facetime_start(payload: dict):
+    st = store()
+    phone = chert.normalize_phone(payload.get("phone"))
+    call_id = str(payload.get("call_id") or "call")
+    fan = await st.upsert_fan(payload.get("fan_id") or (None if phone else f"ft_{call_id}"[:60]), phone=phone)
+    known = bool(fan.get("path") or fan.get("drachmae"))
+    await st.log_event(fan["id"], "facetime_call", "facetime", {"call_id": call_id, "known": known})
+    name = fan.get("handle") or "traveler"
+    greeting = (f"Ah, {name}. The Oracle remembers you. You return to Ithaca." if known else
+                "Welcome, traveler. I am the Oracle of Ithaca. I see what others cannot.")
+    return {"fan_id": fan["id"], "fan_token": fan_token(fan["id"]), "known": known, "greeting": greeting}
+
+
+@router.post("/chert/facetime/verdict", tags=["chert"], dependencies=[Depends(require_service_key)],
+             description="Called by oracle_agent with a caller video frame. multipart (image + mode + fan_id/phone/call_id) "
+                         "or JSON {image_b64, mode, fan_id?, phone?, call_id?}. Returns {say, verdict}; the iMessage "
+                         "result card is sent in the background (once per call and mode, only when recognized).")
+async def facetime_verdict(request: Request, background: BackgroundTasks):
+    data, mime, f = await _read_frame(request)
+    if not data:
+        raise HTTPException(422, "empty image")
+    mode = f.get("mode", "argos")
+    if mode not in ("argos", "bow_trial"):
+        raise HTTPException(422, "mode must be argos or bow_trial")
+    phone = chert.normalize_phone(f.get("phone"))
+    call_id = str(f.get("call_id") or "call")
+    fan = await store().upsert_fan(f.get("fan_id") or (None if phone else f"ft_{call_id}"[:60]), phone=phone)
+    v = await oracle.judge(data, mime, mode, fan_id=fan["id"], context=f.get("context", "Live on FaceTime"), source="facetime")
+    imsg = "not_sent"
+    if phone and v.recognized and v.imessage_text and (call_id, mode) not in _ft_sent:
+        _ft_sent.add((call_id, mode))
+        background.add_task(chert.send_imessage, phone, v.imessage_text)
+        imsg = "queued"
+    return {"say": v.spoken, "fan_id": fan["id"], "imessage": imsg, "verdict": v.model_dump()}
+
+
+@router.post("/chert/send", tags=["chert"], dependencies=[Depends(require_service_key)],
+             description="Admin/test: send one iMessage {phone, body}. Dry-run (logged to /chert/outbox) without CHERT_API_KEY.")
+async def chert_send(payload: dict):
+    return await chert.send_imessage(payload.get("phone"), payload.get("body") or "")
+
+
+@router.get("/chert/outbox", tags=["chert"], dependencies=[Depends(require_service_key)],
+            description="Last 50 outgoing iMessages (phones masked). Shows dry-run sends when Chert isn't keyed.")
+async def chert_outbox():
+    return {"live": chert.get_settings().has_chert, "messages": list(chert.outbox)}
 
 
 # ------------------------------------------------------------- siren (extension)
@@ -202,9 +268,36 @@ async def checkout(fan_id: str, sku: str = "odyssey_pass", authorization: Option
 
 
 # ------------------------------------------------------------- ElevenLabs agent tools (B)
-@router.post("/tools/classify_fan", response_model=ClassifyResponse, tags=["agent-tools"], dependencies=[Depends(require_service_key)])
+@router.post("/tools/classify_fan", tags=["agent-tools"], dependencies=[Depends(require_service_key)],
+             description="Bard agent webhook tool. Same as /onboard/classify, minus fan_token (the LLM doesn't need it; "
+                         "the browser got its token from /bard/agent/session).")
 async def tool_classify(req: ClassifyRequest):
-    return await onboard_classify(req)
+    res = await onboard_classify(req)
+    await store().log_event(res.fan_id, "bard_onboard", "web", {"path": res.path, "era": res.entry_era})
+    return res.model_dump(exclude={"fan_token"}) | {"era_label": ERA_LABELS[res.entry_era]}
+
+
+@router.post("/bard/agent/session", tags=["agent-tools"],
+             description="Hub/bard page calls this before starting the voice session. Pre-creates the fan and returns how "
+                         "to connect: mode=signed (signed_url), public (agent_id) or unconfigured (use the text fallback). "
+                         "Pass dynamic_variables to the ElevenLabs SDK's startSession.")
+async def bard_agent_session(payload: Optional[dict] = None):
+    from app.config import get_settings
+    from app.services import bard_agent
+    payload = payload or {}
+    s = get_settings()
+    fan = await store().upsert_fan(payload.get("fan_id"), handle=payload.get("handle"))
+    out = {"fan_id": fan["id"], "fan_token": fan_token(fan["id"]),
+           "dynamic_variables": {"fan_id": fan["id"], "handle": fan.get("handle") or ""},
+           "agent_id": None, "signed_url": None, "mode": "unconfigured"}
+    if s.has_bard_agent:
+        if s.elevenlabs_agent_public:
+            out.update(agent_id=s.elevenlabs_agent_id, mode="public")
+        else:
+            url = await bard_agent.signed_url()
+            if url:
+                out.update(agent_id=s.elevenlabs_agent_id, signed_url=url, mode="signed")
+    return out
 
 
 @router.post("/tools/get_lore", tags=["agent-tools"], dependencies=[Depends(require_service_key)])
@@ -259,6 +352,12 @@ async def omen_today():
 async def omen_answer(req: OmenAnswer, authorization: Optional[str] = Header(default=None)):
     check_fan(req.fan_id, authorization)
     return await omen.answer(req.fan_id, req.answer)
+
+
+@router.post("/omen/broadcast", tags=["omen"], dependencies=[Depends(require_service_key)],
+             description="Text today's omen over iMessage to everyone who opted in (texted OMEN). Run daily from cron.")
+async def omen_broadcast():
+    return {"omen_id": omen.today_omen()[0].omen_id, "subscribers": len(chert.subscribers()), **await chert.broadcast_omen()}
 
 
 # ------------------------------------------------------------- recap video (P1)
