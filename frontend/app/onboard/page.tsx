@@ -40,7 +40,19 @@ export default function Onboard() {
     // @elevenlabs/react 0.4.x passes these through as `undefined` when unset, which overwrites the client's
     // no-op defaults and crashes on connect ("this.options.onConnect is not a function"). Define them all.
     onConnect: () => setError(null),
-    onDisconnect: (d: unknown) => console.info("[ithaca] Bard disconnected:", d),
+    onDisconnect: (d: unknown) => {
+      console.info("[ithaca] Bard disconnected:", d);
+      // Show why the call ended, so a hang-up right after the greeting isn't a mystery.
+      const det = (d ?? {}) as { reason?: string; message?: string; context?: { code?: number; reason?: string } };
+      if (det.reason === "user") return;
+      const why =
+        det.reason === "error"
+          ? `connection error: ${det.message || "unknown"}`
+          : `the agent ended the call${det.context?.code ? ` (code ${det.context.code})` : ""}${
+              det.context?.reason ? `: ${det.context.reason}` : ""
+            }`;
+      setError(`The Bard hung up: ${why}. Check the agent's conversation history in ElevenLabs, or use the typed path below.`);
+    },
     onDebug: (d: unknown) => console.debug("[ithaca] Bard debug:", d),
     onAudio: () => {},
     onUnhandledClientToolCall: (call: unknown) => console.warn("[ithaca] agent called an unknown client tool:", call),
