@@ -21,6 +21,43 @@ from app.config import get_settings
 from app.services.bard_agent import API, agent_config, client_tools, webhook_tools
 
 
+def _version_key(name: str) -> tuple:
+    import re
+    return tuple(float(n) for n in re.findall(r"\d+(?:\.\d+)?", name)) or (0.0,)
+
+
+async def pick_llm(c: httpx.AsyncClient, wanted: str) -> str:
+    """Use ELEVENLABS_AGENT_LLM if ElevenLabs still offers it; otherwise the newest non-deprecated Gemini Flash.
+    An agent whose LLM is retired still plays its first message (pre-recorded) but never replies, which looks
+    exactly like 'it can't hear me'."""
+    try:
+        r = await c.get(f"{API}/convai/llm/list")
+        r.raise_for_status()
+        rows = r.json().get("llms", [])
+    except Exception as e:
+        print(f"  (couldn't list ElevenLabs LLMs: {e!r}; keeping {wanted})", file=sys.stderr)
+        return wanted
+
+    def ident(x) -> str:
+        v = x.get("llm") if isinstance(x, dict) else x
+        return v if isinstance(v, str) else (v or {}).get("id", "") if isinstance(v, dict) else str(v)
+
+    def retired(x) -> bool:
+        if not isinstance(x, dict):
+            return False
+        return any(("deprecat" in k.lower() or "retire" in k.lower()) and bool(v) and v is not False
+                   for k, v in x.items() if k != "llm")
+
+    live = [ident(x) for x in rows if ident(x) and not retired(x)]
+    if wanted in live:
+        print(f"  LLM: {wanted} (available)")
+        return wanted
+    flash = sorted([m for m in live if "gemini" in m and "flash" in m and "lite" not in m], key=_version_key, reverse=True)
+    choice = (flash or [m for m in live if "gemini" in m] or live or [wanted])[0]
+    print(f"  LLM: {wanted} isn't offered any more -> using {choice}. Available: {', '.join(live[:15])}")
+    return choice
+
+
 async def _tools(c: httpx.AsyncClient, tools: list[dict]) -> list[str] | None:
     ids = []
     for t in tools:
@@ -52,6 +89,7 @@ async def main() -> None:
               file=sys.stderr)
 
     async with httpx.AsyncClient(timeout=30, headers={"xi-api-key": s.elevenlabs_api_key}) as c:
+        s.elevenlabs_agent_llm = await pick_llm(c, s.elevenlabs_agent_llm)
         ids = await _tools(c, tools)
         cfg = agent_config(tool_ids=ids) if ids is not None else agent_config(inline_tools=tools)
         if s.elevenlabs_agent_id:

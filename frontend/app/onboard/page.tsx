@@ -40,8 +40,8 @@ export default function Onboard() {
     // @elevenlabs/react 0.4.x passes these through as `undefined` when unset, which overwrites the client's
     // no-op defaults and crashes on connect ("this.options.onConnect is not a function"). Define them all.
     onConnect: () => setError(null),
-    onDisconnect: () => {},
-    onDebug: () => {},
+    onDisconnect: (d: unknown) => console.info("[ithaca] Bard disconnected:", d),
+    onDebug: (d: unknown) => console.debug("[ithaca] Bard debug:", d),
     onAudio: () => {},
     onUnhandledClientToolCall: (call: unknown) => console.warn("[ithaca] agent called an unknown client tool:", call),
     onMessage: ({ message, source }: { message: string; source: string }) =>
@@ -106,6 +106,23 @@ export default function Onboard() {
 
   const live = conversation.status === "connected";
 
+  // Live readout while connected: is the mic reaching the SDK, and whose turn is it?
+  const [micLevel, setMicLevel] = useState(0);
+  const [peak, setPeak] = useState(0);
+  useEffect(() => {
+    if (!live) {
+      setMicLevel(0);
+      return;
+    }
+    const id = setInterval(() => {
+      const v = conversation.getInputVolume?.() ?? 0;
+      setMicLevel(v);
+      setPeak((p) => Math.max(p, v));
+    }, 120);
+    return () => clearInterval(id);
+  }, [live, conversation]);
+  const heardYou = lines.some((l) => l.who === "you");
+
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-6 text-center">
       <div>
@@ -130,6 +147,25 @@ export default function Onboard() {
           </span>
         </motion.button>
       </div>
+
+      {live && (
+        <div className="card space-y-2 text-left text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Your mic</span>
+            <span className="text-muted">{conversation.isSpeaking ? "The Bard is speaking" : "The Bard is listening"}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.min(100, micLevel * 250)}%` }} />
+          </div>
+          <p className="text-xs text-muted">
+            {peak < 0.02
+              ? "No sound from your mic yet. Speak up, or pick the right microphone in Chrome (lock icon → Site settings)."
+              : heardYou
+                ? "The Bard hears you."
+                : "Your mic works. If no 'You' line appears after you speak, the speech isn't being transcribed."}
+          </p>
+        </div>
+      )}
 
       {lines.length > 0 && (
         <div className="card space-y-2 text-left">
