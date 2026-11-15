@@ -255,6 +255,24 @@ export const api = {
       () => ({ ok: true }),
     ),
 
+  // Part B: ask the backend how to connect the Bard voice agent. It pre-creates the fan and returns
+  // mode "signed" (signed_url), "public" (agent_id) or "unconfigured" (use the typed path).
+  async bardSession(handle?: string): Promise<{
+    mode: "signed" | "public" | "unconfigured";
+    signed_url: string | null;
+    agent_id: string | null;
+    fan_id: string;
+    dynamic_variables: Record<string, string>;
+  } | null> {
+    if (!API_BASE) return null;
+    try {
+      return await raw("/bard/agent/session", { method: "POST", body: JSON.stringify({ handle: handle ?? null }) });
+    } catch (err) {
+      console.warn("[ithaca] bard session unavailable:", err);
+      return null;
+    }
+  },
+
   // Odyssey Pass + Era Drops (mocked payment on the backend, but logged so the War Room counts it).
   checkout: (fanId: string, sku = "odyssey_pass") =>
     call<{ ok: boolean }>(

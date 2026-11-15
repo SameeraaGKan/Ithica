@@ -38,7 +38,12 @@ Before the demo: `python -m scripts.pregen_episodes` caches every era × path ep
 | GET | `/odyssey/{fan_id}` | **C** Hub | map nodes, relics, Drachmae, next episode |
 | POST | `/bard/episode` | **C** Hub | `{fan_id? , era?, path?, topic?, voice}` → script, `audio_url`, `cues[]` (YouTube id + start/end) |
 | POST | `/oracle/frame` | **B** Chert / cam page | multipart `image`+`mode`+`fan_id` **or** JSON `{image_b64, mode, fan_id, source}`; `mode` = `argos` \| `bow_trial` → `spoken`, era/score, relic, Drachmae |
-| POST | `/chert/webhook` | **B** | placeholder: adapt to Chert's real payload; returns `{say}` |
+| POST | `/chert/webhook` | **B** Chert | signed `message.received` iMessage events → menu / Omen / map / trial / Ask the Bard reply |
+| POST | `/chert/facetime/start` · `/chert/facetime/verdict` | **B** `oracle_agent/` | FaceTime caller → fan + greeting; frame → spoken verdict, iMessage card queued |
+| POST | `/chert/send` · GET `/chert/outbox` | admin (service key) | send one iMessage; see recent sends (dry-run without `CHERT_API_KEY`) |
+| POST | `/bard/agent/session` | **B**/**C** Hub | pre-created fan + ElevenLabs `signed_url`/`agent_id` + `dynamic_variables` |
+| POST | `/omen/broadcast` | cron (service key) | texts today's omen to opted-in fans |
+| GET | `/bard` | browser | Arrival page: talk to the Bard → Odyssey Map (written fallback) |
 | GET | `/siren/context?videoId=&t=&channel=` | **D** extension | lore at this moment + relic available |
 | POST | `/siren/collect` | **D** extension | `{fan_id, video_id, t, lore_id}` (pass `lore_id` from context) |
 | POST | `/bard/ask` | **D** extension push-to-talk / Hub | `{question, video_id?, t?, fan_id?}` → grounded answer + `audio_url` |
@@ -54,7 +59,7 @@ Before the demo: `python -m scripts.pregen_episodes` caches every era × path ep
 | GET | `/warroom/metrics?days=14` | **C** War Room | totals, revenue by stream, era-drop demand, daily series; `simulated` flag |
 | POST | `/pass/checkout?fan_id=&sku=` | **C** | mocked Odyssey Pass / Era Drop purchase |
 
-Oracle verdicts include `imessage_text` + `share_url`. **B** sends those over Chert iMessage after the call. Bow Trial verdicts also carry `trial_id`, `sponsor`, `rank`.
+Oracle verdicts include `imessage_text` + `share_url`; `/chert/facetime/verdict` sends them over Chert iMessage. Part B setup: `docs/part-b-voice-facetime.md`. Bow Trial verdicts also carry `trial_id`, `sponsor`, `rank`.
 
 Demo fan: `demo_odysseus` (returning fan, Rug era, two relics) is always seeded.
 

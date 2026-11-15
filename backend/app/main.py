@@ -40,6 +40,9 @@ async def health():
         "ok": True,
         "gemini": s.has_gemini, "gemini_model": s.gemini_model,
         "elevenlabs": s.has_elevenlabs,
+        "bard_agent": s.has_bard_agent,
+        "chert_imessage": s.has_chert,
+        "chert_webhook_signed": bool(s.chert_webhook_secret),
         "lore_backend": lore().backend, "lore_entries": len(lore().entries),
         "store_backend": store().kind,
         "youtube_ingest": bool(s.youtube_api_key),
@@ -52,6 +55,12 @@ async def health():
 async def oracle_cam():
     """FaceTime fallback: same Oracle, laptop camera."""
     return FileResponse(BASE_DIR / "static" / "oracle_cam.html")
+
+
+@app.get("/bard", include_in_schema=False)
+async def bard_page():
+    """Part B: talk to the Bard (ElevenLabs agent) -> classified -> Odyssey Map. Text fallback if no agent."""
+    return FileResponse(BASE_DIR / "static" / "bard.html")
 
 
 @app.get("/test", include_in_schema=False)

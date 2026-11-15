@@ -2,8 +2,8 @@
 import { useConversation } from "@elevenlabs/react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
-import { api } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { API_BASE, api } from "@/lib/api";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "";
 
@@ -11,10 +11,9 @@ type Line = { who: "bard" | "you"; text: string };
 
 /*
   Arrival: voice onboarding with the Bard.
-  Person B owns the ElevenLabs agent. The agent's SERVER tool calls POST /tools/classify_fan on the API.
-  Ask B to also add a CLIENT tool on the agent:
-    name: show_odyssey   params: { fan_id: string }
-  so the Bard can say "behold your map" and this page routes the fan to it.
+  Person B owns the ElevenLabs agent (backend/app/services/bard_agent.py). This page asks the backend for a
+  session (POST /bard/agent/session: signed URL + the pre-created fan_id as a dynamic variable). The agent's
+  server tool calls POST /tools/classify_fan; its client tool show_odyssey_map routes the fan to their map.
 */
 export default function Onboard() {
   const router = useRouter();
@@ -22,6 +21,15 @@ export default function Onboard() {
   const [error, setError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
+  // Voice is available if the backend has a Bard agent (Part B) or a public agent id is baked in.
+  const [voiceReady, setVoiceReady] = useState<boolean>(!!AGENT_ID);
+  useEffect(() => {
+    if (AGENT_ID || !API_BASE) return;
+    fetch(`${API_BASE}/health`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((h) => setVoiceReady(!!h.bard_agent))
+      .catch(() => setVoiceReady(false));
+  }, []);
 
   const goToOdyssey = useCallback(
     (fanId: string) => setTimeout(() => router.push(`/odyssey/${encodeURIComponent(fanId)}`), 1200),
@@ -38,15 +46,29 @@ export default function Onboard() {
     setError(null);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Part B's backend pre-creates the fan and hands back how to connect (signed URL keeps the agent private).
+      const session = await api.bardSession();
+      const showMap = async ({ fan_id }: { fan_id?: string }) => {
+        goToOdyssey(fan_id || session?.fan_id || "demo_odysseus");
+        return "Map shown to the fan.";
+      };
+      const connect =
+        session?.mode === "signed" && session.signed_url
+          ? { signedUrl: session.signed_url }
+          : session?.mode === "public" && session.agent_id
+            ? { agentId: session.agent_id, connectionType: "webrtc" }
+            : AGENT_ID
+              ? { agentId: AGENT_ID, connectionType: "webrtc" }
+              : null;
+      if (!connect) {
+        setError("The Bard's voice isn't set up yet (no ElevenLabs agent). Use the typed path below.");
+        return;
+      }
       const opts = {
-        agentId: AGENT_ID,
-        connectionType: "webrtc",
-        clientTools: {
-          show_odyssey: async ({ fan_id }: { fan_id: string }) => {
-            goToOdyssey(fan_id);
-            return "Map shown to the fan.";
-          },
-        },
+        ...connect,
+        dynamicVariables: session?.dynamic_variables ?? {},
+        // the agent (backend/app/services/bard_agent.py) calls show_odyssey_map; keep the old name too
+        clientTools: { show_odyssey_map: showMap, show_odyssey: showMap },
       };
       await conversation.startSession(opts as Parameters<typeof conversation.startSession>[0]);
     } catch {
@@ -75,7 +97,7 @@ export default function Onboard() {
       <div className="flex justify-center">
         <motion.button
           onClick={live ? () => conversation.endSession() : start}
-          disabled={!AGENT_ID}
+          disabled={!voiceReady}
           animate={live && conversation.isSpeaking ? { scale: [1, 1.08, 1] } : { scale: 1 }}
           transition={{ repeat: Infinity, duration: 1.2 }}
           className={`flex h-44 w-44 flex-col items-center justify-center rounded-full border-4 text-white shadow-2xl transition disabled:cursor-not-allowed disabled:opacity-40 ${
@@ -84,7 +106,7 @@ export default function Onboard() {
         >
           <span className="text-5xl">🎙</span>
           <span className="mt-2 text-sm font-semibold">
-            {!AGENT_ID ? "Agent not set" : live ? (conversation.isSpeaking ? "The Bard speaks…" : "Listening… tap to end") : "Tap to begin"}
+            {!voiceReady ? "Voice not set up yet" : live ? (conversation.isSpeaking ? "The Bard speaks…" : "Listening… tap to end") : "Tap to begin"}
           </span>
         </motion.button>
       </div>
