@@ -27,9 +27,27 @@ async function init() {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg?.kind === "siren:update") onState(msg.state);
   });
+  // The Hub (hub.js) or ⚙ settings changed the fan or API: follow it right away.
+  chrome.storage.onChanged.addListener(async (ch, area) => {
+    if (area !== "local" || !(ch.fan || ch.apiBase || ch.webBase)) return;
+    settings = await getSettings();
+    lastKey = ""; checkApi(); if (state) onState(state);
+  });
   onState(await chrome.runtime.sendMessage({ kind: "siren:get-active" }));
   wireUi();
   checkApi();
+}
+
+// The backend is the truth for this fan's Drachmae and relics; the local copies are only a cache.
+async function syncFan() {
+  try {
+    const o = await api(`/odyssey/${encodeURIComponent(settings.fan)}`);
+    const { pending = [] } = await chrome.storage.local.get("pending");
+    const queued = pending.filter((p) => p.fan_id === settings.fan).length;
+    await chrome.storage.local.set({ owned: (o.relics || []).map((r) => r.id) });
+    setDrachmae((o.drachmae ?? 0) + queued * COLLECT_REWARD, false);
+    if (current) { current.collected = (o.relics || []).some((r) => r.id === (current.relic || current.entry?.relic)?.id); setCollected(current.collected); }
+  } catch {}
 }
 
 // ---------------------------------------------------------------- state → view
@@ -195,7 +213,7 @@ async function flushPending() {
 }
 
 async function checkApi() {
-  try { await api("/health"); setStatus("live", "Live · Ithaca API"); flushPending(); }
+  try { await api("/health"); setStatus("live", "Live · Ithaca API"); await flushPending(); await syncFan(); }
   catch { setStatus("offline", "Offline lore · will sync later"); }
 }
 

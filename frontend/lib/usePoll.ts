@@ -9,10 +9,21 @@ export function usePoll<T>(fetcher: () => Promise<Sourced<T>>, ms: number) {
   const fetchRef = useRef(fetcher);
   fetchRef.current = fetcher;
 
+  const live = useRef(false);
+  const busy = useRef(false);
   const refresh = useCallback(async () => {
-    const res = await fetchRef.current();
-    setData(res.data);
-    setSource(res.source);
+    if (busy.current) return; // a slow poll still running: don't stack another (out-of-order answers)
+    busy.current = true;
+    try {
+      const res = await fetchRef.current();
+      // once live data has arrived, a slow/failed poll's mock fallback must not replace it (coins jumped around)
+      if (res.source !== "live" && live.current) return;
+      live.current = res.source === "live";
+      setData(res.data);
+      setSource(res.source);
+    } finally {
+      busy.current = false;
+    }
   }, []);
 
   useEffect(() => {

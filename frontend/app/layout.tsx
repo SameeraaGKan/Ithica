@@ -10,6 +10,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "ITHACA — the road home to FaZe",
   description: "A voice-first lore and trials platform that brings every FaZe fan home.",
+  // the Siren extension reads this so its relics and Drachmae land on the same backend as the Hub
+  other: { "ithaca-api": (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "") },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
