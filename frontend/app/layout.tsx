@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cinzel.variable} ${inter.variable}`}>
-      <body className="min-h-screen font-sans antialiased">
+    <html lang="en" className={`${cinzel.variable} ${inter.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
         <Nav />
         <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6">{children}</main>
       </body>
