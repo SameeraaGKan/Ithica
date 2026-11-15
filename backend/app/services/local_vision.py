@@ -6,7 +6,6 @@ import logging
 from typing import Optional, Type
 
 import httpx
-from PIL import Image
 from pydantic import BaseModel
 
 from app.config import get_settings
@@ -16,6 +15,7 @@ log = logging.getLogger("ithaca.local_vision")
 
 def _small_jpeg(b: bytes) -> bytes:
     """Smaller image = fewer vision tokens = faster on a small local model."""
+    from PIL import Image  # imported here so a missing Pillow can't stop the whole API from starting
     img = Image.open(io.BytesIO(b)).convert("RGB")
     img.thumbnail((448, 448))
     out = io.BytesIO()
@@ -29,10 +29,15 @@ async def generate_json(prompt: str, schema: Type[BaseModel], *, images: Optiona
     if not s.ollama_url:
         return None
     del timeout  # the Ollama budget is ollama_timeout_s, not the Gemini one
+    try:
+        imgs = [base64.b64encode(_small_jpeg(b)).decode() for b, _ in (images or [])]
+    except Exception as e:  # Pillow missing or an unreadable frame: let the next provider try
+        log.warning("local vision skipped: %r", e)
+        return None
     msgs = ([{"role": "system", "content": system}] if system else []) + [{
         "role": "user",
         "content": prompt + "\nReply with JSON only.",
-        "images": [base64.b64encode(_small_jpeg(b)).decode() for b, _ in (images or [])],
+        "images": imgs,
     }]
     body = {"model": s.ollama_vision_model, "stream": False, "messages": msgs,
             "format": schema.model_json_schema(), "keep_alive": "30m", "options": {"temperature": temperature, "num_predict": 300}}
