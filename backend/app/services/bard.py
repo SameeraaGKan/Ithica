@@ -54,6 +54,15 @@ def _save_cache() -> None:
     p.write_text(json.dumps({k: v.model_dump() for k, v in _cache.items()}, indent=1))
 
 
+def youtube_url(e: dict) -> str:
+    """Link to the moment on YouTube; until D fills video_id, a search built from the lore's find_video hint."""
+    from urllib.parse import quote_plus
+    vid, start = e.get("video_id"), int(e.get("start_s") or 0)
+    if vid:
+        return f"https://www.youtube.com/watch?v={vid}" + (f"&t={start}s" if start else "")
+    return "https://www.youtube.com/results?search_query=" + quote_plus(e.get("find_video") or f"FaZe Clan {e['title']} {e.get('year', '')}")
+
+
 def _template(era: str, path: str, entries: list[dict]) -> _Script:
     label = ERA_LABELS[era]
     opener = (f"Sing, Muse, of the {label} days. You were there, traveler, and Ithaca remembers."
@@ -73,7 +82,10 @@ async def episode(*, era: str, path: str, topic: Optional[str] = None, voice: bo
     s = get_settings()
     stale = hit and hit.generated_by == "template" and s.has_gemini
     if hit and not stale and (hit.audio_url or not voice or not s.has_elevenlabs):
-        return hit.model_copy(update={"cached": True})
+        L = lore()
+        cues = [c if c.url else c.model_copy(update={"url": youtube_url(L.by_id[c.lore_id])}) if c.lore_id in L.by_id else c
+                for c in hit.cues]
+        return hit.model_copy(update={"cached": True, "cues": cues})
 
     L = lore()
     entries = await L.search(topic, era=era, k=4) if topic else L.for_era(era)[:4]
@@ -97,7 +109,7 @@ async def episode(*, era: str, path: str, topic: Optional[str] = None, voice: bo
         episode_id=f"ep_{key}",
         era=era, path=path, title=gen.title, script=gen.script, audio_url=audio,
         cues=[VideoCue(video_id=e.get("video_id"), start_s=e.get("start_s") or 0, end_s=e.get("end_s"),
-                       title=e["title"], lore_id=e["id"]) for e in used],
+                       title=e["title"], lore_id=e["id"], url=youtube_url(e)) for e in used],
         sources=[e["id"] for e in used], cached=False, generated_by=by,
     )
     if by == "gemini" or not get_settings().has_gemini:

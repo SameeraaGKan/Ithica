@@ -39,6 +39,8 @@ export interface Episode {
   start_s: number;
   end_s: number;
   script?: string;
+  watch_url?: string; // the moment on YouTube (or a search for it until the lore has a video_id)
+  moments?: string[]; // lore titles the Bard sang about
 }
 
 // GET /odyssey/:fanId

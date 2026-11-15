@@ -75,6 +75,8 @@ const episodeIn = (ep: any): Episode => {
     start_s: start,
     end_s: cue.end_s ?? start + 90,
     script: ep.script,
+    watch_url: cue.url ?? undefined,
+    moments: (ep.cues ?? []).map((c: any) => c.title).filter(Boolean),
   };
 };
 

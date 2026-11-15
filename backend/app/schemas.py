@@ -87,6 +87,7 @@ class VideoCue(BaseModel):
     end_s: Optional[int] = None
     title: str
     lore_id: str
+    url: Optional[str] = None  # YouTube: the exact moment when video_id is set, otherwise a search for it
 
 
 class EpisodeResponse(BaseModel):

@@ -39,7 +39,10 @@ async def narrate(text: str, *, voice_id: Optional[str] = None, timeout: float =
                     "voice_settings": {"stability": 0.45, "similarity_boost": 0.8, "style": 0.35},
                 },
             )
-            r.raise_for_status()
+            if r.status_code >= 400:
+                # e.g. 401 missing_permissions (key lacks Text to Speech) or 404 voice_not_found
+                log.warning("elevenlabs tts failed %s: %s", r.status_code, r.text[:300])
+                return None
             path.write_bytes(r.content)
             return url
     except Exception as e:
