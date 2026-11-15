@@ -22,7 +22,8 @@ STEPS = [
 ]
 
 # Hub-side actions with no backend event of their own
-MARKABLE = {"era": "era_video", "song": "episode_play"}
+# (visiting the Oracle or the Tiers page is enough to move the journey on: no extra click needed)
+MARKABLE = {"era": "era_video", "song": "episode_play", "oracle": "oracle_visit", "bow": "trial_visit", "tier": "tiers_visit"}
 
 
 async def progress(fan_id: str) -> Optional[dict]:
@@ -37,10 +38,10 @@ async def progress(fan_id: str) -> Optional[dict]:
         "bard": bool(fan.get("path")) or "onboard" in types or "bard_onboard" in types,
         "era": "era_video" in types or "ext" in relic_sources or "watch" in types,
         "siren": "ext" in relic_sources,
-        "oracle": "oracle_argos" in types,
+        "oracle": "oracle_argos" in types or "oracle_visit" in types,
         "song": "episode_play" in types,
-        "bow": "trial_entry" in types,
-        "tier": "reward_claim" in types,
+        "bow": "trial_entry" in types or "trial_visit" in types,
+        "tier": "reward_claim" in types or "tiers_visit" in types,
     }
     steps = [{"key": k, "title": t, "line": line, "cta": cta, "href": href.replace("{fan}", fan_id), "done": done[k]}
              for k, t, line, cta, href in STEPS]

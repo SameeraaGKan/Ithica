@@ -1,6 +1,6 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { eraById } from "@/lib/eras";
@@ -12,6 +12,27 @@ import type { LeaderboardRow, OracleMode, OracleVerdict, WeeklyTrial } from "@/l
   getUserMedia -> snapshot -> POST /oracle/frame -> verdict, spoken with browser TTS.
   If Chert hiccups at the judging table, open this page and keep going.
 */
+// Back to wherever the fan came from (usually their map); straight to their Odyssey if they landed here directly.
+function BackButton() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const goBack = () => {
+    let fan = DEMO_FAN_ID;
+    try {
+      fan = localStorage.getItem("ithaca_fan") || DEMO_FAN_ID;
+    } catch {}
+    const from = params.get("from"); // e.g. era-videos, bow-trial: the section of the map we came from
+    if (from && /^[a-z-]+$/.test(from)) router.push(`/odyssey/${encodeURIComponent(fan)}#${from}`);
+    else if (document.referrer.startsWith(window.location.origin) && window.history.length > 1) router.back();
+    else router.push(`/odyssey/${encodeURIComponent(fan)}`);
+  };
+  return (
+    <button onClick={goBack} className="text-xs font-bold uppercase tracking-wider text-muted transition hover:text-white">
+      ← Back to your Odyssey
+    </button>
+  );
+}
+
 function OracleCam() {
   const params = useSearchParams();
   const [mode, setMode] = useState<OracleMode>((params.get("mode") as OracleMode) === "bow_trial" ? "bow_trial" : "argos");
@@ -26,6 +47,15 @@ function OracleCam() {
   useEffect(() => {
     api.trial().then((r) => setTrial(r.data));
   }, []);
+
+  // Athena: just visiting moves the journey on (merch mode = "Prove it to the Oracle", Bow Trial = "String the bow").
+  useEffect(() => {
+    let fan = DEMO_FAN_ID;
+    try {
+      fan = localStorage.getItem("ithaca_fan") || DEMO_FAN_ID;
+    } catch {}
+    api.questMark(fan, mode === "argos" ? "oracle" : "bow");
+  }, [mode]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -71,6 +101,7 @@ function OracleCam() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="hero-band flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Tiresias · The Oracle</p>

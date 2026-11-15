@@ -24,6 +24,7 @@ export default function Tiers() {
   }, []);
   useEffect(() => {
     load();
+    api.questMark(DEMO_FAN_ID, "tier"); // Athena: opening Tiers completes the journey
   }, [load]);
 
   if (!s) return <p className="py-20 text-center text-muted">Counting your relics…</p>;

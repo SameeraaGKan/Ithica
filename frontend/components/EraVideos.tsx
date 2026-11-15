@@ -91,15 +91,15 @@ export default function EraVideos({ era, fanId, path }: { era: EraId; fanId: str
           <p className="eyebrow">The Oracle</p>
           <p className="mt-1 text-sm text-white">
             {path === "odysseus"
-              ? `Were you really there? Show the Oracle your ${info.label}-era merch and claim the era's relic.`
+              ? `Were you really there? Show the Oracle your merch from the ${info.label} days and claim the era's relic.`
               : "No old merch? Show the Oracle your best trickshot and earn your place among the Suitors."}
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/oracle-cam?mode=argos" className={`btn ${path === "odysseus" ? "btn-primary" : "btn-ghost"}`}>
+          <Link href="/oracle-cam?mode=argos&from=era-videos" className={`btn ${path === "odysseus" ? "btn-primary" : "btn-ghost"}`}>
             Show your merch
           </Link>
-          <Link href="/oracle-cam?mode=bow_trial" className={`btn ${path === "odysseus" ? "btn-ghost" : "btn-primary"}`}>
+          <Link href="/oracle-cam?mode=bow_trial&from=era-videos" className={`btn ${path === "odysseus" ? "btn-ghost" : "btn-primary"}`}>
             Bow Trial
           </Link>
         </div>

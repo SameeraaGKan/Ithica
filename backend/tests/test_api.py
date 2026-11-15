@@ -217,3 +217,15 @@ def test_athena_quest(c):
     q = c.get(f"/quest/{f}").json()
     assert q["completed"] == 7 and q["current"] is None
     assert c.post(f"/quest/{f}/mark", json={"step": "nope"}).status_code == 422
+
+
+def test_athena_visits_count(c):
+    f = c.post("/onboard/classify", json={"handle": "v", "first_found_year": 2013}).json()["fan_id"]
+    for step in ("era",):
+        c.post(f"/quest/{f}/mark", json={"step": step})
+    c.post("/siren/collect", json={"fan_id": f, "video_id": "abc"})
+    assert c.get(f"/quest/{f}").json()["current"]["key"] == "oracle"
+    assert c.post(f"/quest/{f}/mark", json={"step": "oracle"}).json()["current"]["key"] == "song"  # visiting is enough
+    c.post(f"/quest/{f}/mark", json={"step": "song"})
+    assert c.post(f"/quest/{f}/mark", json={"step": "bow"}).json()["current"]["key"] == "tier"
+    assert c.post(f"/quest/{f}/mark", json={"step": "tier"}).json()["completed"] == 7

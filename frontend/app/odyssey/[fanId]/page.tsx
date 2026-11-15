@@ -49,6 +49,12 @@ export default function OdysseyPage() {
   const { data, source, refresh } = usePoll(fetcher, 3000);
   const [picked, setPicked] = useState<EraId | null>(null); // map stop the fan tapped (default: their entry era)
   useEffect(() => rememberFan(fanId), [fanId]); // Athena follows this fan
+  const loaded = !!data;
+  useEffect(() => {
+    if (!loaded || !window.location.hash) return;
+    const el = document.getElementById(window.location.hash.slice(1));
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+  }, [loaded]);
 
   if (!data) {
     return <div className="py-24 text-center font-display text-xl text-muted">The Bard is finding your place in the story…</div>;
@@ -78,14 +84,14 @@ export default function OdysseyPage() {
           <DailyOmen fanId={fan.id} />
         </div>
         <div className="space-y-4 lg:col-span-2">
-          <div className="card">
+          <div id="bow-trial" className="card scroll-mt-24">
             <p className="eyebrow">This week&apos;s Bow Trial</p>
             <h3 className="display mt-1 text-2xl">String the bow</h3>
             <p className="mt-2 text-sm text-muted">
               Only the true king strings the bow. Show the Oracle your best trickshot and see where you land among the Suitors.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/oracle-cam?mode=bow_trial" className="btn btn-primary">
+              <Link href="/oracle-cam?mode=bow_trial&from=bow-trial" className="btn btn-primary">
                 Enter the trial
               </Link>
             </div>

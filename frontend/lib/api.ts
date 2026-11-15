@@ -221,7 +221,7 @@ export const api = {
   quest: (fanId: string) =>
     call<Quest | null>(`/quest/${encodeURIComponent(fanId)}`, undefined, () => null),
   // Hub-only steps (opening an era video, playing the Bard's song) have no backend event of their own.
-  questMark: (fanId: string, step: "era" | "song") =>
+  questMark: (fanId: string, step: "era" | "song" | "oracle" | "bow" | "tier") =>
     call<Quest | null>(`/quest/${encodeURIComponent(fanId)}/mark`, { method: "POST", body: JSON.stringify({ step }) }, () => null),
 
   // Videos for one era of the map; opening one on YouTube is where the Siren takes over.

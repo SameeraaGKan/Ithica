@@ -551,9 +551,9 @@ async def quest_progress(fan_id: str):
     return q
 
 
-@router.post("/quest/{fan_id}/mark", tags=["quest"], description="Hub-only steps with no event of their own: {step: 'era' | 'song'}.")
+@router.post("/quest/{fan_id}/mark", tags=["quest"], description="Hub-side steps: {step: 'era' | 'song' | 'oracle' | 'bow' | 'tier'} (opening a video, playing the song, visiting the Oracle / Tiers).")
 async def quest_mark(fan_id: str, payload: dict):
     from app.services import quest
     if not await quest.mark(fan_id, payload.get("step", "")):
-        raise HTTPException(422, "step must be 'era' or 'song'")
+        raise HTTPException(422, "step must be one of era, song, oracle, bow, tier")
     return await quest.progress(fan_id)
