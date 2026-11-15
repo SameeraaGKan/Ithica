@@ -75,14 +75,11 @@ export default function OdysseyPage() {
             <p className="eyebrow">This week&apos;s Bow Trial</p>
             <h3 className="display mt-1 text-2xl">String the bow</h3>
             <p className="mt-2 text-sm text-muted">
-              Only the true king strings the bow. FaceTime the Oracle with your best trickshot and climb the Suitors board.
+              Only the true king strings the bow. Show the Oracle your best trickshot and see where you land among the Suitors.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/oracle-cam?mode=bow_trial" className="btn btn-primary">
                 Enter the trial
-              </Link>
-              <Link href="/leaderboard" className="btn btn-ghost">
-                Suitors
               </Link>
             </div>
           </div>

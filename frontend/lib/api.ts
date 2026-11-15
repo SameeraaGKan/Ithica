@@ -24,6 +24,7 @@ import type {
   Relic,
   Sourced,
   WarroomMetrics,
+  WeeklyTrial,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
@@ -179,9 +180,17 @@ export const api = {
         reasons: v.reasons,
         relic: v.relic ? relicIn(v.relic) : undefined,
         drachmae_awarded: v.drachmae_awarded,
+        rank: v.rank ?? undefined,
+        sponsor: v.sponsor ?? null,
       }),
       ORACLE_TIMEOUT_MS,
     ),
+
+  // This week's Bow Trial (prompt + sponsor), shown on the Oracle page.
+  trial: () =>
+    call<WeeklyTrial>("/trials/current", undefined, () => ({
+      id: "trial_demo", prompt: "String the bow: show the Oracle your cleanest trickshot.", sponsor: null, pass_score: 70,
+    }), (t) => ({ id: t.id, prompt: t.prompt, sponsor: t.sponsor ?? null, pass_score: t.pass_score ?? 70 })),
 
   // The Suitors = this week's Bow Trial leaderboard.
   leaderboard: () =>

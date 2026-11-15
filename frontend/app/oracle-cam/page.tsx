@@ -5,7 +5,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { eraById } from "@/lib/eras";
 import { DEMO_FAN_ID } from "@/lib/mocks";
-import type { OracleMode, OracleVerdict } from "@/lib/types";
+import type { LeaderboardRow, OracleMode, OracleVerdict, WeeklyTrial } from "@/lib/types";
 
 /*
   FaceTime fallback (plan: Robustness). Same Oracle service as the Chert FaceTime agent:
@@ -20,6 +20,12 @@ function OracleCam() {
   const [camError, setCamError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [verdict, setVerdict] = useState<OracleVerdict | null>(null);
+  const [trial, setTrial] = useState<WeeklyTrial | null>(null);
+  const [board, setBoard] = useState<LeaderboardRow[] | null>(null);
+
+  useEffect(() => {
+    api.trial().then((r) => setTrial(r.data));
+  }, []);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -58,6 +64,8 @@ function OracleCam() {
     const { data } = await api.oracleFrame(DEMO_FAN_ID, mode, image);
     setVerdict(data);
     speak(data.verdict);
+    setBoard(null);
+    if (mode === "bow_trial") api.leaderboard().then((r) => setBoard(r.data.slice(0, 5)));
     setBusy(false);
   };
 
@@ -101,6 +109,15 @@ function OracleCam() {
         </div>
 
         <div className="space-y-4 lg:col-span-2">
+          {mode === "bow_trial" && trial && (
+            <div className="card border-faze/50">
+              <p className="eyebrow">
+                This week&apos;s Bow Trial{trial.sponsor ? ` · presented by ${trial.sponsor}` : ""}
+              </p>
+              <p className="mt-2 text-sm text-white">{trial.prompt}</p>
+              <p className="mt-1 text-xs text-muted">Score {trial.pass_score}+ to earn Swagg&apos;s Bow. Your best score counts on the Suitors board.</p>
+            </div>
+          )}
           <button className="btn btn-primary w-full py-3 text-base" onClick={consult} disabled={busy}>
             {busy ? "The Oracle sees…" : "👁 Consult the Oracle"}
           </button>
@@ -126,6 +143,36 @@ function OracleCam() {
               </motion.div>
             )}
           </AnimatePresence>
+          {mode === "bow_trial" && verdict?.score != null && board && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card">
+              <div className="flex items-baseline justify-between">
+                <p className="eyebrow">The Suitors · this week</p>
+                {verdict.rank && <p className="display text-2xl text-faze">#{verdict.rank}</p>}
+              </div>
+              <ol className="mt-3 space-y-1.5">
+                {board.map((s) => {
+                  const you = s.fan_id === DEMO_FAN_ID;
+                  return (
+                    <li
+                      key={s.fan_id}
+                      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
+                        you ? "bg-faze/20 font-bold text-white ring-1 ring-faze" : "bg-white/5 text-muted"
+                      }`}
+                    >
+                      <span>
+                        <span className="mr-3 inline-block w-5 text-right">{s.rank}</span>
+                        {you ? "You" : s.handle}
+                      </span>
+                      <span className="tabular-nums">{s.best_trial_score}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+              {verdict.rank && verdict.rank > 5 && (
+                <p className="mt-2 text-xs text-muted">You&apos;re #{verdict.rank}. Beat {board[board.length - 1]?.best_trial_score} to break into the top 5.</p>
+              )}
+            </motion.div>
+          )}
           <p className="text-xs text-muted">Frames are processed in memory and discarded. Only the verdict and relic are stored.</p>
         </div>
       </div>

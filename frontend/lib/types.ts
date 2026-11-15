@@ -67,6 +67,15 @@ export interface OracleVerdict {
   reasons?: string[];
   relic?: Relic;
   drachmae_awarded?: number;
+  rank?: number; // bow trial: place among this week's Suitors
+  sponsor?: string | null; // bow trial: this week's sponsor, if any
+}
+
+export interface WeeklyTrial {
+  id: string;
+  prompt: string;
+  sponsor: string | null;
+  pass_score: number;
 }
 
 export interface LeaderboardRow {

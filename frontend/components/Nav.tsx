@@ -6,7 +6,6 @@ import { DEMO_FAN_ID } from "@/lib/mocks";
 const LINKS = [
   { href: "/", label: "Home", match: "/" },
   { href: `/odyssey/${DEMO_FAN_ID}`, label: "My Odyssey", match: "/odyssey" },
-  { href: "/leaderboard", label: "Suitors", match: "/leaderboard" },
   { href: "/oracle-cam", label: "Oracle", match: "/oracle-cam" },
   { href: "/pass", label: "Pass", match: "/pass" },
   { href: "/warroom", label: "War Room", match: "/warroom" },
