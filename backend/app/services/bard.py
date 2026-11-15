@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.schemas import ERA_LABELS, EpisodeResponse, VideoCue
-from app.services import gemini, tts
+from app.services import gemini, llm, tts
 from app.services.lore import lore
 
 log = logging.getLogger("ithaca.bard")
@@ -100,7 +100,7 @@ async def episode(*, era: str, path: str, topic: Optional[str] = None, voice: bo
     plays = f"They currently play: {', '.join(games)}. " if games else ""
     prompt = (f"path={path}\nera={ERA_LABELS[era]}\n{who}{plays}\n"
               f"{'Focus: ' + topic if topic else 'Sing the story of this era.'}\n\nLORE:\n{lore_block}")
-    gen = await gemini.generate_json(prompt, _Script, system=BARD_SYSTEM, timeout=get_settings().bard_timeout_s)
+    gen = await llm.generate_json(prompt, _Script, system=BARD_SYSTEM, timeout=get_settings().bard_timeout_s)
     by = "gemini"
     if gen is None or not gen.script.strip():
         gen, by = _template(era, path, entries), "template"
@@ -147,7 +147,7 @@ async def ask(question: str, *, video_id: Optional[str] = None, t: Optional[int]
     if said:
         on_screen += "TRANSCRIPT (what is said in the video, treat as fact source):\n" + \
             "\n".join(f"[{r['start_s']}s] {r['text'][:600]}" for r in said[:3]) + "\n"
-    res = await gemini.generate_json(f"{on_screen}QUESTION: {question}\n\nLORE:\n{lore_block}", _Ask, system=ASK_SYSTEM,
+    res = await llm.generate_json(f"{on_screen}QUESTION: {question}\n\nLORE:\n{lore_block}", _Ask, system=ASK_SYSTEM,
                                      timeout=8, temperature=0.5)
     by = "gemini"
     if res is None or not res.answer.strip():

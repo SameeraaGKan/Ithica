@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import FazeClip from "@/components/FazeClip";
 import { api } from "@/lib/api";
 import { eraById } from "@/lib/eras";
 import type { Episode } from "@/lib/types";
@@ -95,7 +96,10 @@ export default function EpisodePlayer({
       </p>
 
       <div className="mt-4 aspect-video w-full overflow-hidden rounded-xl border border-line bg-black">
-        {src ? (
+        {src && started && fanId && current.video_id ? (
+          // the real clip, muted under the narration; 30s of watching earns the moment's relic
+          <FazeClip key={current.id} videoId={current.video_id} start={current.start_s} end={current.end_s} fanId={fanId} muted />
+        ) : src ? (
           <iframe
             key={`${current.id}-${started}`}
             src={src}

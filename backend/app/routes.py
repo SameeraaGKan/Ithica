@@ -102,6 +102,13 @@ async def _read_frame(request: Request) -> tuple[bytes, str, dict]:
     return data, mime, body
 
 
+@router.delete("/fan/{fan_id}/data", tags=["privacy"],
+               description="Erase one fan's data: profile, relics, events, trial entries and purchases.")
+async def delete_fan_data(fan_id: str, authorization: Optional[str] = Header(None)):
+    check_fan(fan_id, authorization)
+    return {"fan_id": fan_id, "deleted": await store().delete_fan_data(fan_id)}
+
+
 @router.post("/oracle/frame", response_model=OracleVerdict, tags=["oracle"],
              description="multipart (image file + mode + fan_id) or JSON {image_b64, mode, fan_id, context, source}. "
                          "mode = argos | bow_trial. Frames are processed in memory and discarded.")
@@ -236,7 +243,8 @@ def _lore_for(video_id: str, t: int, channel: Optional[str]) -> tuple[bool, Opti
 
 
 @router.get("/siren/context", response_model=SirenContext, tags=["siren"])
-async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional[str] = None):
+async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional[str] = None,
+                        fan_id: Optional[str] = None):
     is_faze, e = _lore_for(videoId, t, channel)
     lore_out = {k: e.get(k) for k in ("id", "era", "year", "title", "people", "summary", "why_it_matters",
                                       "video_id", "start_s", "end_s")} if e else None
@@ -244,8 +252,13 @@ async def siren_context(videoId: str = Query(...), t: int = 0, channel: Optional
         lore_out["era_label"] = ERA_LABELS.get(e["era"])
     relic = relic_catalog().get(e["relic"]["id"]) if e and e.get("relic") else None
     tr = lore().transcript_at(videoId, t) if is_faze else None
+    # the next relic this fan hasn't collected yet (shown as a hint in the side panel)
+    owned = {r["id"] for r in await store().list_fan_relics(fan_id)} if fan_id else set()
+    catalog = relic_catalog()
+    nxt = next((catalog[x["relic"]["id"]] for x in lore().entries
+                if x.get("relic") and x["relic"]["id"] not in owned and x["relic"]["id"] in catalog), None)
     return SirenContext(video_id=videoId, t=t, is_faze=is_faze, lore=lore_out, relic_available=_relic_out(relic),
-                        transcript=tr["text"] if tr else None)
+                        transcript=tr["text"] if tr else None, next_relic=_relic_out(nxt))
 
 
 @router.post("/siren/collect", response_model=CollectResponse, tags=["siren"])
@@ -266,9 +279,13 @@ async def siren_collect(req: CollectRequest, authorization: Optional[str] = Head
                   if x.get("relic") and x["relic"]["id"] not in have and not x.get("sensitive")), None)
     else:
         e = _lore_for(req.video_id, req.t, "faze")[1]
+    if not e:
+        # not a FaZe moment in the lore: no relic and no Drachmae, so the endpoint can't be farmed
+        fan = await st.get_fan(req.fan_id) or {}
+        return CollectResponse(relic=None, drachmae_awarded=0, drachmae_total=fan.get("drachmae", 0), already_had=False)
     relic, already = (None, False)
     gained = 0
-    if e and e.get("relic"):
+    if e.get("relic"):
         relic, already = await st.grant_relic(req.fan_id, e["relic"]["id"], via="ext")
         if relic and not already:
             await st.log_event(req.fan_id, "relic", "ext", {"era": relic["era"], "relic_id": relic["id"], "video_id": req.video_id})

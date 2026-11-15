@@ -64,9 +64,9 @@ def test_oracle_argos_multipart(c, fan):
 def test_oracle_bow_json_and_leaderboard(c, fan):
     b64 = "data:image/jpeg;base64," + base64.b64encode(JPG).decode()
     j = c.post("/oracle/frame", json={"image_b64": b64, "mode": "bow_trial", "fan_id": fan}).json()
-    assert j["score"] is not None and j["trial_id"] and j["rank"]
-    lb = c.get("/trials/leaderboard").json()
-    assert any(s["fan_id"] == fan for s in lb["suitors"])
+    assert j["score"] is not None and j["trial_id"]
+    # offline (no Gemini) = fallback, which skips the safety check, so it is not ranked
+    assert j["fallback"] and j["rank"] is None
 
 
 def test_oracle_bad_mode(c):

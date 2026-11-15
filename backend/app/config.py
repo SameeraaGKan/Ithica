@@ -58,6 +58,13 @@ class Settings(BaseSettings):
     # Behaviour
     hub_base_url: str = "http://localhost:3000"      # C's Next.js hub, for iMessage links
     public_base_url: str = "http://127.0.0.1:8080"   # set to https://api.<domain> on Vultr
+    # Fallback chain (comma-separated, in order). Gemini dates merch far better; the local Ollama model keeps the
+    # demo alive when Gemini's quota runs out or the Wi-Fi drops. The canned line is always last.
+    oracle_providers: str = "gemini,ollama"
+    text_providers: str = "gemini,ollama"  # Bard scripts and answers
+    ollama_url: str = "http://127.0.0.1:11434"
+    ollama_vision_model: str = "qwen2.5vl:3b"
+    ollama_timeout_s: float = 20.0  # first call loads the model into memory, which takes several seconds
     oracle_timeout_s: float = 6.0
     bard_timeout_s: float = 20.0
     cors_origins: str = "*"

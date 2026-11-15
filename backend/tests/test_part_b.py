@@ -156,7 +156,7 @@ def test_facetime_flow(c):
     assert r2["imessage"] == "not_sent"
     b = c.post("/chert/facetime/verdict", json={"image_b64": base64.b64encode(JPG).decode(), "mode": "bow_trial",
                                                  "call_id": "room1", "phone": phone}).json()
-    assert b["verdict"]["score"] is not None and b["verdict"]["rank"]
+    assert b["verdict"]["score"] is not None and b["verdict"]["rank"] is None  # fallback: not ranked
     # caller is now known on the next call
     assert c.post("/chert/facetime/start", json={"call_id": "room2", "phone": phone}).json()["known"]
 

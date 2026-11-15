@@ -99,6 +99,16 @@ cd Ithica
 git checkout main && git pull
 ```
 
+**Shortcut: one command each.** The setup script installs everything, creates your `.env` files and runs the tests. The dev script starts the backend (8080) and the Hub (3000) together. Or follow steps 1–2 by hand.
+
+```bash
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File setup\setup.ps1
+powershell -ExecutionPolicy Bypass -File setup\dev.ps1
+# macOS / Linux
+bash setup/setup.sh && bash setup/dev.sh
+```
+
 ### 1. Backend: the API (window 1)
 
 ```bash
@@ -153,6 +163,10 @@ Put them in `backend/.env`, then restart the backend.
 | `YOUTUBE_API_KEY` | `scripts.ingest_youtube` | Pulls FaZe uploads and suggests a video for each lore entry |
 | `TWITCH_*` | Live Bow Trials | `python -m scripts.twitch_subscribe --broadcaster <you>` |
 | `ITHACA_API_KEY` | Locks agent/webhook/admin routes | Callers send the `X-Ithaca-Key` header |
+| *(Ollama, no key)* | Local backup AI for the Oracle and Bard scripts | Install [Ollama](https://ollama.com), then `ollama pull qwen2.5vl:3b`. Used when Gemini fails or runs out of quota. Order set by `ORACLE_PROVIDERS` / `TEXT_PROVIDERS` (default `gemini,ollama`) |
+| `TOKEN_SECRET` | Signs fan tokens and keys the phone-number hash | Set a long random value before the demo |
+
+With no keys and no Ollama the app still runs end to end: the Oracle gives labelled offline verdicts (kept off the Suitors board), the Bard uses templates, and narration falls back to the computer's built-in voice. Privacy details are in `docs/PRIVACY_NOTES.md`; a fan's data can be erased with `DELETE /fan/{fan_id}/data`.
 
 ### 5. The Bard's voice (ElevenLabs agent)
 

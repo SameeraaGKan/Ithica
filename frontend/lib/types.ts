@@ -71,6 +71,10 @@ export interface OracleVerdict {
   drachmae_awarded?: number;
   rank?: number; // bow trial: place among this week's Suitors
   sponsor?: string | null; // bow trial: this week's sponsor, if any
+  item?: string; // argos: what the fan is showing, e.g. "grey FaZe hoodie"
+  year?: number; // argos: best estimate of when it was made
+  era_reason?: string; // argos: the clue that decided the era
+  fallback?: boolean; // canned answer (no AI reached): shown, never ranked
 }
 
 export interface WeeklyTrial {

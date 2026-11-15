@@ -1,6 +1,7 @@
 """Fans / events / relics / Drachmae. Tiger Data (asyncpg) when TIGER_DSN is set,
 otherwise an in-memory store with seeded, clearly-labeled simulated history."""
 import hashlib
+import hmac
 import json
 import logging
 import random
@@ -52,7 +53,8 @@ def hash_phone(phone: Optional[str]) -> Optional[str]:
     if not phone:
         return None
     digits = "".join(ch for ch in phone if ch.isdigit())
-    return hashlib.sha256(digits.encode()).hexdigest()
+    # keyed (HMAC), not plain SHA-256: phone numbers are too few to hide behind an unkeyed hash
+    return hmac.new(get_settings().token_secret.encode(), digits.encode(), hashlib.sha256).hexdigest()
 
 
 def relic_catalog() -> dict[str, dict]:
@@ -162,6 +164,17 @@ class MemoryStore:
         rec = {"earned_at": now().isoformat(), "via": via}
         self.fan_relics[fan_id][relic_id] = rec
         return {**r, **rec}, False
+
+    async def delete_fan_data(self, fan_id: str) -> dict:
+        """Erase one fan's data (privacy request). Returns how many rows went."""
+        before = (len(self.events), len(self.trial_entries), len(self.purchases))
+        self.events = [e for e in self.events if e.get("fan_id") != fan_id]
+        self.trial_entries = [e for e in self.trial_entries if e.get("fan_id") != fan_id]
+        self.purchases = [p for p in self.purchases if p.get("fan_id") != fan_id]
+        relics = len(self.fan_relics.pop(fan_id, {}))
+        return {"fan": self.fans.pop(fan_id, None) is not None, "relics": relics,
+                "events": before[0] - len(self.events), "trial_entries": before[1] - len(self.trial_entries),
+                "purchases": before[2] - len(self.purchases)}
 
     async def fan_event_kinds(self, fan_id: str) -> set[tuple[str, str]]:
         """Distinct (type, source) pairs this fan has generated: powers Athena's quest."""
@@ -392,6 +405,88 @@ class PgStore(MemoryStore):
         async with self.pool.acquire() as c:
             rows = await c.fetch("SELECT DISTINCT type, source FROM events WHERE fan_id=$1", fan_id)
         return {(r["type"], r["source"]) for r in rows}
+
+    async def delete_fan_data(self, fan_id: str) -> dict:
+        """Erase one fan's rows in Tiger Data, child tables first (privacy request)."""
+        out = {}
+        async with self.pool.acquire() as c:
+            async with c.transaction():
+                for table, key in (("fan_relics", "relics"), ("trial_entries", "trial_entries"),
+                                   ("events", "events"), ("purchases", "purchases"), ("fans", "fan")):
+                    col = "id" if table == "fans" else "fan_id"
+                    status = await c.execute(f"DELETE FROM {table} WHERE {col}=$1", fan_id)
+                    out[key] = int(status.split()[-1])
+        out["fan"] = bool(out.pop("fan"))
+        return out
+
+
+def _funnel(onboarded, episodes, relics, trials, passes) -> list[dict]:
+    # ordered widest to narrowest so each step reads as a drop-off
+    return [{"stage": "Onboarded with the Bard", "count": onboarded}, {"stage": "Collected a relic", "count": relics},
+            {"stage": "Played a Bard episode", "count": episodes}, {"stage": "Entered a Bow Trial", "count": trials},
+            {"stage": "Bought the Odyssey Pass", "count": passes}]
+
+
+def _assemble(rows, rev, passes, era_demand, fans, *, simulated, backend, funnel=None) -> dict:
+    tot = lambda k: sum(r[k] for r in rows)
+    reactivated, new = tot("reactivated"), tot("new_fans")
+    return {
+        "simulated": simulated,
+        "backend": backend,
+        "generated_at": now().isoformat(),
+        "funnel": funnel or [],
+        "window_days": len(rows),
+        "totals": {
+            "fans": fans,
+            "reactivated_fans": reactivated,
+            "new_fans": new,
+            "dau_today": rows[-1]["active_fans"] if rows else 0,
+            "trial_entries": tot("trial_entries"),
+            "relics_collected": tot("relics"),
+            "episodes_played": tot("episodes"),
+            "sponsored_impressions": tot("sponsored_impressions"),
+            "pass_conversions": passes,
+            "pass_conversion_rate": round(passes / max(1, reactivated + new), 4),
+            "revenue_cents": sum(rev.values()),
+        },
+        "revenue_by_stream_cents": {
+            "odyssey_pass": rev.get("odyssey_pass", 0),
+            "era_drop": rev.get("era_drop", 0),
+            "sponsored_trial": rev.get("sponsored_trial", 0),
+        },
+        "era_drop_demand": {e: era_demand.get(e, 0) for e in ERAS},
+        "daily": rows,
+    }
+
+
+_store = None
+
+
+def store() -> MemoryStore:
+    global _store
+    if _store is None:
+        s = get_settings()
+        _store = PgStore(s.tiger_dsn) if s.has_tiger else MemoryStore()
+    return _store
+
+
+async def init_store() -> None:
+    global _store
+    st = store()
+    try:
+        await st.init()
+    except Exception as e:
+        log.warning("Tiger unavailable (%r) -> in-memory store", e)
+        _store = MemoryStore()
+        await _store.init()
+
+
+async def award(fan_id: str, type_: str, source: str, meta: Optional[dict] = None, drachmae: Optional[int] = None) -> int:
+    """Log an event and pay Drachmae in one call. Returns new balance."""
+    st = store()
+    await st.log_event(fan_id, type_, source, meta)
+    n = DRACHMAE.get(type_, 0) if drachmae is None else drachmae
+    return await st.add_drachmae(fan_id, n) if n else (await st.get_fan(fan_id) or {}).get("drachmae", 0)
 
     async def list_fan_relics(self, fan_id: str) -> list[dict]:
         cat = relic_catalog()

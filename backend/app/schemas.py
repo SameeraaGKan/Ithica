@@ -116,6 +116,10 @@ class OracleVerdict(BaseModel):
     drachmae_awarded: int = 0
     fallback: bool = False
     latency_ms: int = 0
+    # argos merch read-out
+    item: Optional[str] = None       # what the fan is showing, e.g. "grey FaZe hoodie"
+    year: Optional[int] = None       # best estimate of when it was made
+    era_reason: Optional[str] = None  # the clue that decided the era
     # bow trial extras
     trial_id: Optional[str] = None
     sponsor: Optional[str] = None
@@ -133,6 +137,7 @@ class SirenContext(BaseModel):
     lore: Optional[dict]
     relic_available: Optional[RelicOut]
     transcript: Optional[str] = None  # what's being said around t, if we have the transcript
+    next_relic: Optional[RelicOut] = None  # the next relic this fan hasn't collected (needs fan_id)
 
 
 class CollectRequest(BaseModel):

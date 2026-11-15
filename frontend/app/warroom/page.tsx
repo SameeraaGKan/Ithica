@@ -88,6 +88,35 @@ export default function WarRoom() {
         })}
       </div>
 
+      {/* What changed this week */}
+      {(() => {
+        const moves = (Object.entries(data.kpi_deltas) as [KpiKey, number | undefined][])
+          .filter(([, v]) => v != null)
+          .sort((a, b) => Math.abs(b[1]!) - Math.abs(a[1]!));
+        const top = moves[0];
+        const label = top && KPIS.find((k) => k.key === top[0])?.label;
+        return (
+          <div className="card flex flex-wrap items-center justify-between gap-3 text-sm">
+            <p>
+              {top && label ? (
+                <>
+                  <span className="eyebrow mr-2">Biggest move this week</span>
+                  {label}{" "}
+                  <span className={`font-semibold ${top[1]! >= 0 ? "text-emerald-400" : "text-faze"}`}>
+                    {top[1]! >= 0 ? "▲" : "▼"} {Math.abs(top[1]!).toFixed(1)}%
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted">No week-on-week change yet.</span>
+              )}
+            </p>
+            {data.simulated && (
+              <p className="text-xs text-muted">Simulated numbers until real fan events are connected.</p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Revenue */}
       <div className="card">
         <div className="flex flex-wrap items-baseline justify-between gap-4">

@@ -159,20 +159,39 @@ function OracleCam() {
           <AnimatePresence>
             {verdict && (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card border-gold/50">
-                <p className="eyebrow">The Oracle speaks</p>
+                <p className="eyebrow">{verdict.fallback ? "Offline verdict · not a real read" : "The Oracle speaks"}</p>
+                {verdict.item && <p className="mt-3 text-lg font-semibold text-white">{verdict.item}</p>}
+                {verdict.era && (
+                  <p className="display mt-2 text-4xl text-faze">
+                    {verdict.year ?? eraById(verdict.era).year}{" "}
+                    <span className="text-base not-italic text-muted">{eraById(verdict.era).label}</span>
+                  </p>
+                )}
                 <p className="mt-3 text-lg italic leading-relaxed text-gold-soft">&ldquo;{verdict.verdict}&rdquo;</p>
+                {verdict.era_reason && (
+                  <p className="mt-3 text-sm">
+                    <span className="text-muted">Dated by:</span> {verdict.era_reason}
+                  </p>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  {verdict.era && <span className="rounded-full bg-white/5 px-3 py-1">Era: {eraById(verdict.era).year} {eraById(verdict.era).label}</span>}
-                  {verdict.confidence != null && <span className="rounded-full bg-white/5 px-3 py-1">Confidence {Math.round(verdict.confidence * 100)}%</span>}
+                  {verdict.confidence != null && verdict.confidence > 0 && (
+                    <span className="rounded-full bg-white/5 px-3 py-1">Confidence {Math.round(verdict.confidence * 100)}%</span>
+                  )}
                   {verdict.score != null && <span className="rounded-full bg-faze/20 px-3 py-1 text-faze">Score {verdict.score}</span>}
-                  {verdict.drachmae_awarded && <span className="rounded-full bg-gold/15 px-3 py-1 text-gold">+{verdict.drachmae_awarded} Drachmae</span>}
+                  {verdict.drachmae_awarded ? <span className="rounded-full bg-gold/15 px-3 py-1 text-gold">+{verdict.drachmae_awarded} Drachmae</span> : null}
                 </div>
-                {verdict.reasons && (
-                  <ul className="mt-3 list-inside list-disc text-sm text-muted">
-                    {verdict.reasons.map((r) => (
-                      <li key={r}>{r}</li>
-                    ))}
-                  </ul>
+                {verdict.reasons && verdict.reasons.length > 0 && (
+                  <>
+                    <p className="mt-4 text-xs uppercase tracking-widest text-muted">What the Oracle saw</p>
+                    <ul className="mt-1 list-inside list-disc text-sm text-muted">
+                      {verdict.reasons.map((r) => (
+                        <li key={r}>{r}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {verdict.fallback && verdict.score != null && (
+                  <p className="mt-3 text-xs text-muted">Offline scores stay off the Suitors board: no safety check ran.</p>
                 )}
                 {verdict.relic && <p className="mt-3 text-sm">🏺 Relic earned: <span className="font-semibold text-gold">{verdict.relic.name}</span></p>}
               </motion.div>

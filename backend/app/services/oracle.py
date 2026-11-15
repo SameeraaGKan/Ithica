@@ -1,3 +1,4 @@
+import json
 """The Oracle: give it an image + mode, get a spoken verdict back.
 Transport-agnostic on purpose: Chert webhook, Chert tool call, or the web-camera
 fallback page all call `judge()` the same way. Frames are never stored."""
@@ -8,7 +9,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from app.config import get_settings
+from app.config import BASE_DIR, get_settings
 from app.schemas import ERA_LABELS, OracleVerdict, RelicOut
 from app.services import gemini
 from app.services.lore import lore
@@ -29,6 +30,24 @@ WHAT_COUNTS = """WHAT COUNTS AS FAZE (any ONE of these is enough):
 - Merch for a FaZe member that says FaZe (e.g. "FaZe Rug", "FaZe Banks", "FaZe Apex", "FaZe Swagg", "FaZe Jarvis").
 NOT FaZe: other esports orgs (OpTic alone, 100 Thieves, Sentinels, TSM, NRG, Team Liquid, Cloud9), generic gaming gear,
 school or club hoodies, random red logos, people's faces. Never claim a logo you cannot actually see."""
+
+MERCH_REF_PATH = BASE_DIR / "data" / "merch_reference.json"
+
+
+def merch_reference_text() -> str:
+    """Verified merch per era, from data/merch_reference.json. Empty when the team hasn't filled it in."""
+    try:
+        ref = json.loads(MERCH_REF_PATH.read_text())
+    except (OSError, ValueError):
+        return ""
+    lines = []
+    for era, body in ref.items():
+        if era.startswith("_"):
+            continue
+        for it in (body or {}).get("items", []):
+            lines.append(f"- {era}: {it.get('name', '?')} ({it.get('year', '?')}), clue: {it.get('clue', '?')}")
+    return "KNOWN FAZE MERCH (verified; date against these first):\n" + "\n".join(lines) if lines else ""
+
 
 ERA_GUIDE = """HOW TO DATE IT (use the strongest clue; say which one decided it in items_seen):
 FaZe logo versions (official dates):
@@ -63,6 +82,7 @@ class _Argos(BaseModel):
     era_reason: str = Field(description="The single clue that decided the era, in one short phrase")
     confidence: float = Field(ge=0, le=1)
     items_seen: list[str] = Field(description="Short list of what you see that informed the call")
+    year: Optional[int] = Field(default=None, description="Best estimate of the year this item was made, e.g. 2014. Null if unsure.")
     spoken: str = Field(description="1-2 sentences the Oracle says aloud, Homeric and warm, under 35 words")
 
 
@@ -116,6 +136,20 @@ def _era_relic(era: str) -> Optional[str]:
     return None
 
 
+async def _ask(prompt: str, schema, **kw):
+    """Try each provider in ORACLE_PROVIDERS order; the first one that returns a valid verdict wins."""
+    from app.services import local_vision
+    for name in get_settings().oracle_providers.split(","):
+        name = name.strip()
+        call = local_vision.generate_json if name == "ollama" else gemini.generate_json if name == "gemini" else None
+        if call is None:
+            continue
+        res = await call(prompt, schema, **kw)
+        if res is not None:
+            return res
+    return None
+
+
 async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = None, context: str = "",
                 source: str = "web") -> OracleVerdict:
     s = get_settings()
@@ -131,10 +165,10 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
                   f"in words a fan would know (e.g. 'the trickshot days', 'the Rug and Banks vlog years', 'the Champion "
                   f"drops and Warzone nukes', 'the Snoop era', 'the new FaZe'), and mention the item you saw.\n"
                   f"If nothing FaZe is visible: faze_related=false, confidence below 0.2, and the spoken line gently asks, in "
-                  f"character, to hold their FaZe relic closer to the light.\n\n{WHAT_COUNTS}\n\n{ERA_GUIDE}\n\n"
+                  f"character, to hold their FaZe relic closer to the light.\n\n{WHAT_COUNTS}\n\n{ERA_GUIDE}\n\n{merch_reference_text()}\n\n"
                   f"Extra context: {context or 'none'}")
-        res = await gemini.generate_json(prompt, _Argos, images=[(image, mime)], system=ORACLE_SYSTEM,
-                                         timeout=s.oracle_timeout_s, temperature=0.4)
+        res = await _ask(prompt, _Argos, images=[(image, mime)], system=ORACLE_SYSTEM,
+                                         timeout=s.oracle_timeout_s, temperature=0.0)
         if res is None:
             fallback = True
             res = _Argos(item="", faze_clues=[], faze_related=True, era="2013_rug_era", era_reason="", confidence=0.0,
@@ -145,14 +179,15 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
         reasons = ([f"Item: {res.item}"] if res.item else []) + list(res.faze_clues or res.items_seen) + \
                   ([f"Era clue: {res.era_reason}"] if res.era_reason else [])
         v = OracleVerdict(mode="argos", recognized=recognized or fallback, era=res.era, confidence=res.confidence,
-                          reasons=reasons, spoken=res.spoken, fallback=fallback)
+                          reasons=reasons, spoken=res.spoken, fallback=fallback,
+                          item=res.item or None, year=res.year, era_reason=res.era_reason or None)
         relic_id = _era_relic(res.era) if v.recognized else None
         event, drach = "oracle_argos", 40
     else:
         prompt = ("Mode: THE BOW TRIAL. Only the true king can string the bow of Odysseus. The fan is showing a trickshot "
                   "(a clip on their screen or a live attempt). Judge it like FaZe recruiters judging a trickshot montage.\n"
                   f"Extra context: {context or 'none'}")
-        res = await gemini.generate_json(prompt, _Bow, images=[(image, mime)], system=ORACLE_SYSTEM,
+        res = await _ask(prompt, _Bow, images=[(image, mime)], system=ORACLE_SYSTEM,
                                          timeout=s.oracle_timeout_s, temperature=0.5)
         if res is None:
             fallback = True
@@ -181,7 +216,8 @@ async def judge(image: bytes, mime: str, mode: str, *, fan_id: Optional[str] = N
         v.drachmae_awarded = drach
         if mode == "argos" and v.era:
             await st.update_fan(fan_id, entry_era=(await st.get_fan(fan_id) or {}).get("entry_era") or v.era)
-        if mode == "bow_trial" and v.recognized:
+        # fallback verdicts skip the Gemini safety check, so they never go on the public leaderboard
+        if mode == "bow_trial" and v.recognized and not fallback:
             await st.add_trial_entry(v.trial_id, fan_id, v.score or 0, v.spoken)
             board = await st.leaderboard(v.trial_id, limit=100)
             v.rank = next((r["rank"] for r in board if r["fan_id"] == fan_id), None)

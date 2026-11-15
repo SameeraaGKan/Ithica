@@ -13,3 +13,4 @@ dist/
 backend/static/recaps/
 .DS_Store
 *.zip
+backend/static/audio/*.wav

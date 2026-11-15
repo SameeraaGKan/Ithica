@@ -1,0 +1,8 @@
+{
+  "_about": "Known FaZe merch per era. The Oracle is shown these when dating an item. Fill in 'items' with what your team has verified (name, year, the visible clue). Leave empty and the Oracle dates from the general guide only.",
+  "2010_trickshots": {"items": []},
+  "2013_rug_era": {"items": []},
+  "2020_nuke_squad": {"items": []},
+  "2022_snoop": {"items": []},
+  "today": {"items": []}
+}

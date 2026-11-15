@@ -51,9 +51,13 @@ async function loadContext(s) {
   const seq = ++fetchSeq;
   let ctx = null;
   try {
-    const q = new URLSearchParams({ videoId: s.videoId, t: String(s.t), channel: s.channelName || s.channelHandle });
+    const q = new URLSearchParams({ videoId: s.videoId, t: String(s.t), channel: s.channelName || s.channelHandle, fan_id: settings.fan });
     const res = await api(`/siren/context?${q}`);
     // Backend shape: { video_id, t, is_faze, lore: {..., era_label}, relic_available: {id, era, name, rarity} }
+    // next_relic: the next relic this fan hasn't collected, shown as a hint
+    const nx = res.next_relic;
+    $("nextRelic").textContent = nx ? `Next to find: ${nx.name} (${nx.rarity})` : "";
+    $("nextRelic").classList.toggle("hidden", !nx);
     if (!res.lore) throw new Error("no lore from API");
     const era = eraOf(res.lore.era);
     // The API omits video_id/relic on lore; merge the bundled copy so "Jump to moment" and relic names still work.
