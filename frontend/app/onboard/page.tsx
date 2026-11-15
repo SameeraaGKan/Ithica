@@ -28,7 +28,6 @@ function Onboard() {
   const router = useRouter();
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   // Voice is available if the backend has a Bard agent (Part B) or a public agent id is baked in.
   const [voiceReady, setVoiceReady] = useState<boolean>(!!AGENT_ID);
@@ -146,14 +145,6 @@ function Onboard() {
     }
   };
 
-  const classifyTyped = async () => {
-    if (!typed.trim()) return;
-    setBusy(true);
-    const { data } = await api.classify(typed);
-    setLines([{ who: "you", text: typed }, { who: "bard", text: data.path === "odysseus" ? "You were there. Welcome home, Odysseus." : "Then sit, Telemachus, and hear of your father's legend." }]);
-    goToOdyssey(data.fan_id);
-  };
-
   // "Show my Odyssey": classify everything the fan has told the Bard so far (voice or typed), same as the typed path.
   const revealFromChat = async () => {
     const said = lines.filter((l) => l.who === "you").map((l) => l.text).join(" ");
@@ -169,7 +160,6 @@ function Onboard() {
 
   // Live readout while connected: is the mic reaching the SDK, and whose turn is it?
   const [micLevel, setMicLevel] = useState(0);
-  const [peak, setPeak] = useState(0);
   useEffect(() => {
     if (!live) {
       setMicLevel(0);
@@ -178,7 +168,6 @@ function Onboard() {
     const id = setInterval(() => {
       const v = conversation.getInputVolume?.() ?? 0;
       setMicLevel(v);
-      setPeak((p) => Math.max(p, v));
     }, 120);
     return () => clearInterval(id);
   }, [live, conversation]);
@@ -186,7 +175,8 @@ function Onboard() {
   const sendSay = () => {
     const t = say.trim();
     if (!t) return;
-    conversation.sendUserMessage(t);
+    if (live) conversation.sendUserMessage(t); // no call running: it's kept for "Show my Odyssey"
+    else heardFan.current = true;
     setLines((l): Line[] => [...l, { who: "you" as const, text: t }].slice(-8));
     setSay("");
   };
@@ -216,65 +206,35 @@ function Onboard() {
         </motion.button>
       </div>
 
-      {live && (
-        <div className="card space-y-2 text-left text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted">Your mic</span>
-            <span className="text-muted">{conversation.isSpeaking ? "The Bard is speaking" : "The Bard is listening"}</span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      {/* One box: the conversation, one input (voice or typed both land here), one button to reveal the Odyssey */}
+      <div className="card space-y-3 text-left">
+        {live && (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-white/10" aria-label="Your mic level">
             <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.min(100, micLevel * 250)}%` }} />
           </div>
-          <p className="text-xs text-muted">
-            {peak < 0.02
-              ? "No sound from your mic yet. Speak up, or pick the right microphone in Chrome (lock icon → Site settings)."
-              : heardYou
-                ? "The Bard hears you."
-                : "Your mic works. If no 'You' line appears after you speak, type your answer here instead."}
-          </p>
-          <div className="flex gap-2 pt-1">
-            <input
-              value={say}
-              onChange={(e) => setSay(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendSay()}
-              placeholder="Or type to the Bard… (e.g. 2013, Clayster, MW2)"
-              className="flex-1 rounded-xl border border-line bg-black/40 px-3 py-2 text-sm outline-none focus:border-gold"
-            />
-            <button className="btn btn-primary" onClick={sendSay}>Send</button>
-          </div>
+        )}
+        {lines.map((l, i) => (
+          <motion.p key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={l.who === "bard" ? "font-display text-gold" : "text-white"}>
+            <span className="mr-2 text-xs uppercase tracking-widest text-muted">{l.who === "bard" ? "Bard" : "You"}</span>
+            {l.text}
+          </motion.p>
+        ))}
+        <div className="flex gap-2">
+          <input
+            value={say}
+            onChange={(e) => setSay(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendSay()}
+            placeholder={live ? "Speak, or type to the Bard…" : "When did you find FaZe? Who was your guy? What game?"}
+            className="flex-1 rounded-xl border border-line bg-black/40 px-3 py-2 text-sm outline-none focus:border-gold"
+          />
+          <button className="btn btn-primary" onClick={sendSay}>Send</button>
         </div>
-      )}
-
-      {lines.length > 0 && (
-        <div className="card space-y-2 text-left">
-          {lines.map((l, i) => (
-            <motion.p key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={l.who === "bard" ? "font-display text-gold" : "text-white"}>
-              <span className="mr-2 text-xs uppercase tracking-widest text-muted">{l.who === "bard" ? "Bard" : "You"}</span>
-              {l.text}
-            </motion.p>
-          ))}
-          {heardYou && (
-            <button onClick={revealFromChat} disabled={busy} className="btn btn-primary mt-2 w-full disabled:opacity-60">
-              {busy ? "Opening your Odyssey…" : "Show my Odyssey →"}
-            </button>
-          )}
-        </div>
-      )}
-
-      {error && <p className="text-sm text-faze">{error}</p>}
-
-      <div className="card text-left">
-        <p className="eyebrow">No mic? Type it</p>
-        <textarea
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          rows={3}
-          placeholder="I found FaZe in 2013 watching trickshot montages on MW2…"
-          className="mt-3 w-full rounded-xl border border-line bg-black/40 p-3 text-sm outline-none focus:border-gold"
-        />
-        <button className="btn btn-primary mt-3" onClick={classifyTyped} disabled={busy}>
-          {busy ? "The Bard considers…" : "Reveal my Odyssey"}
-        </button>
+        {heardYou && (
+          <button onClick={revealFromChat} disabled={busy} className="btn btn-primary w-full disabled:opacity-60">
+            {busy ? "Opening your Odyssey…" : "Show my Odyssey →"}
+          </button>
+        )}
+        {error && <p className="text-sm text-faze">{error}</p>}
       </div>
     </div>
   );
