@@ -67,8 +67,9 @@ export default function OdysseyPage() {
       <OdysseyMap entryEra={fan.entry_era} path={fan.path} />
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+        <div className="space-y-4 lg:col-span-3">
           <EpisodePlayer episode={data.next_episode} others={data.episodes} />
+          <DailyOmen fanId={fan.id} />
         </div>
         <div className="space-y-4 lg:col-span-2">
           <div className="card">
@@ -83,7 +84,6 @@ export default function OdysseyPage() {
               </Link>
             </div>
           </div>
-          <DailyOmen fanId={fan.id} />
           <ShareRecap fanId={fan.id} />
           <div className="card border-gold/40 bg-gradient-to-br from-gold/10 to-transparent">
             <p className="eyebrow">Tiers · {data.relics.length} relics</p>
