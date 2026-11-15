@@ -306,6 +306,37 @@ class PgStore(MemoryStore):
                                 "ON CONFLICT (id) DO UPDATE SET era=EXCLUDED.era, name=EXCLUDED.name, rarity=EXCLUDED.rarity",
                                 r["id"], r["era"], r["name"], r["rarity"], r.get("art_url"))
         await seed_demo_fan(self)
+        # A fresh Tiger DB (e.g. Render) gets the labelled simulated history once, so the War Room isn't all zeros.
+        try:
+            async with self.pool.acquire() as c:
+                empty = not await c.fetchval("SELECT 1 FROM events WHERE meta->>'simulated'='true' LIMIT 1")
+            if empty:
+                log.info("Tiger has no simulated history: %s", await self.seed_simulated())
+        except Exception as e:
+            log.warning("simulated history seed failed (%r); War Room will show live data only", e)
+
+    async def seed_simulated(self) -> str:
+        """Replace the simulated history (meta.simulated=true) with a fresh 14-day copy. Real fan data is untouched."""
+        mem = MemoryStore()
+        mem._simulate_history()
+        async with self.pool.acquire() as c, c.transaction():
+            await c.execute("DELETE FROM events WHERE meta->>'simulated'='true'")
+            await c.execute("DELETE FROM purchases WHERE fan_id LIKE 'sim_%' "
+                            "OR (fan_id IS NULL AND sku='sponsored_trial:demo_brand')")  # the sim's sponsor rows
+            await c.executemany(
+                "INSERT INTO fans(id, path, entry_era, created_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING",
+                [(f["id"], f["path"], f["entry_era"], datetime.fromisoformat(f["created_at"])) for f in mem.fans.values()])
+            await c.copy_records_to_table("events", records=[(e["ts"], e["fan_id"], e["type"], e["source"], e["meta"])
+                                                             for e in mem.events], columns=["ts", "fan_id", "type", "source", "meta"])
+            await c.executemany("INSERT INTO purchases(fan_id, sku, amount_cents, ts) VALUES($1,$2,$3,$4)",
+                                [(p["fan_id"], p["sku"], p["amount_cents"], p["ts"]) for p in mem.purchases])
+            trial = await self.current_trial()
+            await c.execute("DELETE FROM trial_entries WHERE fan_id LIKE 'sim_%'")
+            await c.executemany("INSERT INTO trial_entries(trial_id, fan_id, score, verdict, ts) VALUES($1,$2,$3,$4,$5)",
+                                [(trial["id"], e["fan_id"], e["score"], e["verdict"], e["ts"]) for e in mem.trial_entries])
+            await c.executemany("UPDATE fans SET handle=$2 WHERE id=$1",
+                                [(f["id"], f["handle"]) for f in mem.fans.values() if f.get("handle")])
+        return f"seeded {len(mem.fans)} sim fans, {len(mem.events)} events, {len(mem.purchases)} purchases"
 
     async def current_trial(self) -> dict:
         week = week_start()
