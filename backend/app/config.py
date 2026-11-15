@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     # Behaviour
     hub_base_url: str = "http://localhost:3000"      # C's Next.js hub, for iMessage links
-    public_base_url: str = "http://localhost:8000"   # set to https://api.<domain> on Vultr
+    public_base_url: str = "http://127.0.0.1:8080"   # set to https://api.<domain> on Vultr
     oracle_timeout_s: float = 6.0
     bard_timeout_s: float = 20.0
     cors_origins: str = "*"
