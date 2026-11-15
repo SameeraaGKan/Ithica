@@ -40,10 +40,9 @@ export default function Landing() {
           <FazeMontage
             narration={narration}
             onClose={() => setMontage(false)}
-            onDone={() => {
-              setMontage(false);
-              startNewFan();
-            }}
+            starting={starting}
+            // keep the montage up until the Odyssey opens: creating the fan can take a few seconds
+            onDone={startNewFan}
           />
         )}
       </AnimatePresence>

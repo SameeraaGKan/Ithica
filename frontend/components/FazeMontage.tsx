@@ -74,7 +74,9 @@ export default function FazeMontage({
   onDone,
   onClose,
   narration,
+  starting = false,
 }: {
+  starting?: boolean;
   onDone: () => void;
   onClose: () => void;
   narration?: (string | null)[] | null; // the Bard's clips: one per slide, then the closing line
@@ -308,8 +310,8 @@ export default function FazeMontage({
                 sings the story, the Siren shows you the moments, and the Oracle lets you earn your place.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={onDone} className="btn btn-primary px-8 py-3.5 text-base">
-                  Start my Odyssey →
+                <button onClick={onDone} disabled={starting} className="btn btn-primary px-8 py-3.5 text-base disabled:opacity-60">
+                  {starting ? "Opening your Odyssey…" : "Start my Odyssey →"}
                 </button>
                 <button
                   onClick={() => {
