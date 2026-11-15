@@ -100,6 +100,15 @@ export default function Athena() {
                   <Link href={step.href} className="btn btn-gold w-full">
                     {step.cta} →
                   </Link>
+                  <button
+                    onClick={async () => {
+                      const r = await api.questMark(quest.fan_id, step.key);
+                      if (r.data) setQuest(r.data);
+                    }}
+                    className="w-full text-center text-xs font-bold uppercase tracking-wider text-muted transition hover:text-white"
+                  >
+                    Done, next step →
+                  </button>
                 </>
               ) : (
                 <>
@@ -117,7 +126,8 @@ export default function Athena() {
               {list && (
                 <ol className="space-y-1.5">
                   {quest.steps.map((s, i) => (
-                    <li key={s.key} className="flex items-center gap-2 text-xs">
+                    <li key={s.key}>
+                      <Link href={s.href} className="flex items-center gap-2 rounded px-1 py-0.5 text-xs transition hover:bg-white/5">
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                           s.done ? "bg-gold text-ink" : s.key === step?.key ? "bg-faze text-white" : "bg-white/10 text-muted"
@@ -128,6 +138,7 @@ export default function Athena() {
                       <span className={s.done ? "text-muted line-through" : s.key === step?.key ? "text-white" : "text-muted"}>
                         {s.title}
                       </span>
+                      </Link>
                     </li>
                   ))}
                 </ol>

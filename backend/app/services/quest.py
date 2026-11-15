@@ -34,6 +34,7 @@ async def progress(fan_id: str) -> Optional[dict]:
     kinds = await st.fan_event_kinds(fan_id)
     types = {t for t, _ in kinds}
     relic_sources = {src for t, src in kinds if t == "relic"}
+    manual = {t.removeprefix("quest_") for t in types if t.startswith("quest_")}  # Athena's "Done, next step"
     done = {
         "bard": bool(fan.get("path")) or "onboard" in types or "bard_onboard" in types,
         "era": "era_video" in types or "ext" in relic_sources or "watch" in types,
@@ -43,6 +44,7 @@ async def progress(fan_id: str) -> Optional[dict]:
         "bow": "trial_entry" in types or "trial_visit" in types,
         "tier": "reward_claim" in types or "tiers_visit" in types,
     }
+    done = {k: v or k in manual for k, v in done.items()}
     steps = [{"key": k, "title": t, "line": line, "cta": cta, "href": href.replace("{fan}", fan_id), "done": done[k]}
              for k, t, line, cta, href in STEPS]
     current = next((s for s in steps if not s["done"]), None)
@@ -51,8 +53,10 @@ async def progress(fan_id: str) -> Optional[dict]:
 
 
 async def mark(fan_id: str, step: str) -> bool:
-    if step not in MARKABLE:
+    """Record a Hub-side step. Any step can also be ticked by hand (Athena's 'Done, next step')."""
+    keys = {k for k, *_ in STEPS}
+    if step not in keys:
         return False
     await store().upsert_fan(fan_id)
-    await store().log_event(fan_id, MARKABLE[step], "web", {"quest": step})
+    await store().log_event(fan_id, MARKABLE.get(step, f"quest_{step}"), "web", {"quest": step})
     return True

@@ -555,5 +555,5 @@ async def quest_progress(fan_id: str):
 async def quest_mark(fan_id: str, payload: dict):
     from app.services import quest
     if not await quest.mark(fan_id, payload.get("step", "")):
-        raise HTTPException(422, "step must be one of era, song, oracle, bow, tier")
+        raise HTTPException(422, "step must be one of bard, era, siren, oracle, song, bow, tier")
     return await quest.progress(fan_id)

@@ -217,6 +217,9 @@ def test_athena_quest(c):
     q = c.get(f"/quest/{f}").json()
     assert q["completed"] == 7 and q["current"] is None
     assert c.post(f"/quest/{f}/mark", json={"step": "nope"}).status_code == 422
+    g = c.post("/onboard/classify", json={"handle": "skip"}).json()["fan_id"]
+    c.post(f"/quest/{g}/mark", json={"step": "era"})
+    assert c.post(f"/quest/{g}/mark", json={"step": "siren"}).json()["current"]["key"] == "oracle"  # ticked by hand
 
 
 def test_athena_visits_count(c):
