@@ -21,7 +21,7 @@ export default function OdysseyMap({ entryEra, path }: { entryEra: EraId; path: 
       <div className="flex items-baseline justify-between gap-4">
         <div>
           <p className="eyebrow">Your Odyssey Map</p>
-          <h2 className="mt-1 font-display text-2xl font-bold">
+          <h2 className="display mt-1 text-4xl">
             {path === "odysseus" ? "You were there." : "Here is where it began."}
           </h2>
         </div>

@@ -58,10 +58,10 @@ export default function WarRoom() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="hero-band flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">War Room · Board view</p>
-          <h1 className="font-display text-4xl font-black">How Ithaca earns</h1>
+          <h1 className="display text-5xl">How Ithaca earns</h1>
           <p className="mt-1 text-sm text-muted">Last {data.daily.length} days · refreshes every 5s · updated {new Date(data.generated_at).toLocaleTimeString()}</p>
         </div>
         <div className="flex gap-2">
@@ -77,7 +77,7 @@ export default function WarRoom() {
           return (
             <motion.div key={k.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card p-4">
               <p className="text-xs text-muted">{k.label}</p>
-              <p className="mt-2 font-display text-2xl font-bold">{k.fmt(data.kpis[k.key])}</p>
+              <p className="display mt-2 text-3xl">{k.fmt(data.kpis[k.key])}</p>
               {delta != null && (
                 <p className={`mt-1 text-xs font-semibold ${delta >= 0 ? "text-emerald-400" : "text-faze"}`}>
                   {delta >= 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}% wk/wk
@@ -93,7 +93,7 @@ export default function WarRoom() {
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
             <p className="eyebrow">Revenue · three lines</p>
-            <p className="mt-1 font-display text-3xl font-black">{usd(totals.all)}</p>
+            <p className="display mt-1 text-4xl">{usd(totals.all)}</p>
           </div>
           <div className="flex flex-wrap gap-4 text-sm">
             <Stat color={C.pass} label="Odyssey Pass" value={usd(totals.pass)} />
@@ -121,7 +121,7 @@ export default function WarRoom() {
         {/* Reactivation */}
         <div className="card">
           <p className="eyebrow">Odysseus returns</p>
-          <h3 className="mt-1 font-display text-xl font-bold">Reactivated fans per day</h3>
+          <h3 className="display mt-1 text-2xl">Reactivated fans per day</h3>
           <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series} margin={{ left: 0, right: 8, top: 8 }}>
@@ -144,7 +144,7 @@ export default function WarRoom() {
         {/* Funnel */}
         <div className="card">
           <p className="eyebrow">Funnel</p>
-          <h3 className="mt-1 font-display text-xl font-bold">Bard to Pass</h3>
+          <h3 className="display mt-1 text-2xl">Bard to Pass</h3>
           <div className="mt-4 space-y-3">
             {data.funnel.map((f, i) => {
               const pct = (f.count / funnelMax) * 100;
@@ -176,7 +176,7 @@ export default function WarRoom() {
       {/* Era Drop demand */}
       <div className="card">
         <p className="eyebrow">Era Drops</p>
-        <h3 className="mt-1 font-display text-xl font-bold">Merch drop demand by era (waitlist)</h3>
+        <h3 className="display mt-1 text-2xl">Merch drop demand by era (waitlist)</h3>
         <div className="mt-4 h-56">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.era_demand} margin={{ left: 0, right: 8, top: 8 }}>

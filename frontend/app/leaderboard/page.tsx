@@ -13,10 +13,10 @@ export default function Leaderboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="hero-band flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">The Suitors</p>
-          <h1 className="font-display text-4xl font-black">Who strings the bow?</h1>
+          <h1 className="display text-5xl">Who strings the bow?</h1>
           <p className="mt-2 text-muted">Weekly rivals. Top Bow Trial clips get featured and scouted for FaZe Up.</p>
         </div>
         <SourceBadge source={source} />

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Cinzel, Inter } from "next/font/google";
+import { Anton, Inter } from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
-const cinzel = Cinzel({ subsets: ["latin"], variable: "--font-cinzel", weight: ["500", "700", "900"] });
+const anton = Anton({ subsets: ["latin"], variable: "--font-anton", weight: "400" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cinzel.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${anton.variable} ${inter.variable}`} suppressHydrationWarning>
       <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
         <Nav />
         <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6">{children}</main>

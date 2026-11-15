@@ -26,8 +26,10 @@ export default function Health() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl font-black">Health</h1>
-      <p className="text-sm text-muted">API: {API_BASE || "(none, mock mode)"}</p>
+      <div className="hero-band">
+        <h1 className="display text-4xl">Health</h1>
+        <p className="mt-2 text-sm text-muted">API: {API_BASE || "(none, mock mode)"}</p>
+      </div>
       <div className="card space-y-2 font-mono text-sm">
         {CHECKS.map((c) => (
           <p key={c}>

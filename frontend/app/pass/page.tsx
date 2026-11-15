@@ -17,9 +17,9 @@ export default function Pass() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-6">
-      <div className="text-center">
+      <div className="hero-band text-center">
         <p className="eyebrow">Season 1 · The Return</p>
-        <h1 className="mt-2 font-display text-5xl font-black">Odyssey Pass</h1>
+        <h1 className="display mt-2 text-6xl">Odyssey Pass</h1>
         <p className="mt-3 text-muted">Cheap, collectible, status. Your seat at the hearth in Ithaca.</p>
       </div>
 
@@ -28,7 +28,7 @@ export default function Pass() {
         animate={{ opacity: 1, y: 0 }}
         className="card mx-auto max-w-md border-gold/60 bg-gradient-to-b from-gold/15 via-panel to-panel text-center"
       >
-        <p className="font-display text-6xl font-black text-gold">$4.99</p>
+        <p className="display text-7xl text-gold">$4.99</p>
         <p className="text-sm text-muted">per season</p>
         <ul className="mt-6 space-y-3 text-left text-sm">
           {PERKS.map((p) => (

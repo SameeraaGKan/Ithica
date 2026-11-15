@@ -25,7 +25,7 @@ export default function EpisodePlayer({ episode, others }: { episode: Episode | 
   return (
     <div className="card">
       <p className="eyebrow">The Bard Sings</p>
-      <h2 className="mt-1 font-display text-2xl font-bold">{current.title}</h2>
+      <h2 className="display mt-1 text-3xl">{current.title}</h2>
       <p className="text-sm text-muted">
         {eraById(current.era).year} · {eraById(current.era).label} · {Math.round(current.end_s - current.start_s)}s
       </p>

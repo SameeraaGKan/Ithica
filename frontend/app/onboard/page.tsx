@@ -145,9 +145,9 @@ function Onboard() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-6 text-center">
-      <div>
+      <div className="hero-band">
         <p className="eyebrow">Arrival</p>
-        <h1 className="mt-2 font-display text-4xl font-black">Speak, and the Bard will sing</h1>
+        <h1 className="display mt-2 text-5xl">Speak, and the Bard will sing</h1>
         <p className="mt-3 text-muted">When did you first find FaZe? Who was your guy? What game?</p>
       </div>
 

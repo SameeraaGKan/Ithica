@@ -280,6 +280,24 @@ export const api = {
       { method: "POST" },
       () => ({ ok: true }),
     ),
+
+  // P1 Daily Omen: today's lore question, and the fan's answer (same rules as the iMessage reply).
+  omen: () => call<{ omen_id: string; question: string; reward: number } | null>("/omen/today", undefined, () => null),
+
+  omenAnswer: (fanId: string, answer: string) =>
+    call<{ correct: boolean; reply: string; drachmae_awarded: number; already_answered: boolean }>(
+      "/omen/answer",
+      { method: "POST", body: JSON.stringify({ fan_id: fanId, answer }) },
+      () => ({ correct: false, reply: "Offline: the Omen needs the API.", drachmae_awarded: 0, already_answered: false }),
+    ),
+
+  // P1 shareable recap: the backend renders a short vertical video and returns its URL.
+  recap: (fanId: string) =>
+    call<{ video_url: string }>(
+      `/recap/${encodeURIComponent(fanId)}`,
+      { method: "POST" },
+      () => ({ video_url: "" }),
+    ),
 };
 
 export { ERA_OUT };

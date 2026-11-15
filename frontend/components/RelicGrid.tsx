@@ -18,7 +18,7 @@ export default function RelicGrid({ earned, locked }: { earned: Relic[]; locked:
       <div className="flex items-baseline justify-between">
         <div>
           <p className="eyebrow">Relics</p>
-          <h2 className="mt-1 font-display text-2xl font-bold">
+          <h2 className="display mt-1 text-4xl">
             {earned.length} / {earned.length + locked.length} collected
           </h2>
         </div>
@@ -46,10 +46,17 @@ export default function RelicGrid({ earned, locked }: { earned: Relic[]; locked:
             </motion.div>
           ))}
           {locked.map((r) => (
-            <div key={r.id} className="rounded-xl border border-dashed border-line p-3 opacity-50">
+            <div key={r.id} className="group relative rounded-xl border border-dashed border-line p-3 opacity-50 transition hover:opacity-100 hover:border-faze/60">
               <div className="flex aspect-square items-center justify-center rounded-lg bg-black/40 text-3xl grayscale">🔒</div>
-              <p className="mt-2 text-sm font-semibold">???</p>
+              <p className="mt-2 text-sm font-semibold group-hover:hidden">???</p>
+              <p className="mt-2 hidden text-sm font-semibold text-white group-hover:block">{r.name}</p>
               <p className="text-xs text-muted">{eraById(r.era).year} · {eraById(r.era).label}</p>
+              <div className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 hidden w-56 -translate-x-1/2 rounded-xl border border-faze/60 bg-ink p-3 text-left shadow-xl group-hover:block">
+                <p className="eyebrow">Unlock this relic</p>
+                <p className="mt-1 text-sm font-semibold text-white">{r.name}</p>
+                <p className="mt-1 text-xs capitalize text-muted">{r.rarity} · {eraById(r.era).year} {eraById(r.era).label}</p>
+                <p className="mt-2 text-xs text-muted">Collect it through the Bard, the Oracle or the Siren to add it to your Odyssey.</p>
+              </div>
             </div>
           ))}
         </AnimatePresence>
