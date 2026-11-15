@@ -205,13 +205,28 @@ async def chert_outbox():
 
 
 # ------------------------------------------------------------- siren (extension)
+# FaZe members whose channels don't carry "FaZe" (kept in step with extension/config.js FAZE_MEMBER_NAMES)
+FAZE_MEMBER_NAMES = {"rug", "banks", "apex", "adapt", "swagg", "jarvis", "kaysan", "lacy", "stable ronaldo", "silky",
+                     "jason", "temperrr", "clipz", "teeqo", "sensei", "censor", "megga", "replays", "nickmercs", "booya",
+                     "santana"}
+
+
+def _is_faze_channel(channel: Optional[str], known: list[str]) -> bool:
+    if not channel:
+        return False
+    c = channel.strip().lower()
+    bare = re.sub(r"[^a-z0-9 ]", "", re.sub(r"^faze\s*", "", c)).strip()
+    return "faze" in c or bare in FAZE_MEMBER_NAMES or c.lstrip("@") in FAZE_MEMBER_NAMES or \
+        any(k.lower() == c for k in known)
+
+
 def _lore_for(video_id: str, t: int, channel: Optional[str]) -> tuple[bool, Optional[dict]]:
     """Deterministic: same video always maps to the same lore, so context and collect agree."""
     import zlib
     L = lore()
     e = L.at_timestamp(video_id, t)
     meta = L.video_meta(video_id)
-    is_faze = bool(e or meta or (channel and any(c.lower() in channel.lower() for c in ["faze"] + L.faze_channels)))
+    is_faze = bool(e or meta or _is_faze_channel(channel, L.faze_channels))
     if not e and is_faze:
         pool = L.for_era(meta["era"]) if meta and meta.get("era") else []
         pool = [x for x in pool if not x.get("sensitive")] or pool
@@ -495,7 +510,7 @@ async def rewards_claim(fan_id: str, payload: dict, authorization: Optional[str]
                         "moment (+ thumbnail); without one, a YouTube search built from the lore's find_video hint. "
                         "Opening a FaZe video is where the Siren extension takes over. Pass fan_id to mark collected relics.")
 async def era_videos(era: str, fan_id: Optional[str] = None, limit: int = Query(6, ge=1, le=20)):
-    from urllib.parse import quote_plus
+    from app.services.bard import youtube_url
     if era not in ERAS:
         raise HTTPException(404, f"era must be one of {ERAS}")
     have = {r["id"] for r in await store().list_fan_relics(fan_id)} if fan_id else set()
@@ -505,13 +520,11 @@ async def era_videos(era: str, fan_id: Optional[str] = None, limit: int = Query(
             continue
         vid = e.get("video_id")
         start = int(e.get("start_s") or 0)
-        q = e.get("find_video") or f"FaZe Clan {e['title']} {e.get('year', '')}"
         relic = e.get("relic") or {}
         items.append({
             "lore_id": e["id"], "title": e["title"], "year": e.get("year"), "summary": e.get("summary"),
             "video_id": vid, "start_s": start,
-            "url": f"https://www.youtube.com/watch?v={vid}" + (f"&t={start}s" if start else "") if vid
-                   else f"https://www.youtube.com/results?search_query={quote_plus(q)}",
+            "url": youtube_url(e),  # the moment, or a search inside the FaZe Clan channel
             "thumbnail": f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg" if vid else None,
             "kind": "moment" if vid else "search",
             "relic": {"id": relic.get("id"), "name": relic.get("name"), "rarity": relic.get("rarity"),

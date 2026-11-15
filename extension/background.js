@@ -1,5 +1,5 @@
 // The Siren — service worker. Keeps the latest player state per tab and relays it to the side panel.
-import { FAZE_CHANNELS } from "./config.js";
+import { FAZE_CHANNELS, FAZE_MEMBER_NAMES } from "./config.js";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
@@ -9,8 +9,10 @@ function isFaze(s) {
   if (!s) return false;
   const name = (s.channelName || "").toLowerCase();
   const handle = (s.channelHandle || "").toLowerCase();
+  const bare = name.replace(/^faze\s*/, "").replace(/[^a-z0-9 ]/g, "").trim();
   return name.includes("faze") || handle.includes("faze") ||
-    FAZE_CHANNELS.includes(handle) || FAZE_CHANNELS.includes(name);
+    FAZE_CHANNELS.includes(handle) || FAZE_CHANNELS.includes(name) ||
+    FAZE_MEMBER_NAMES.includes(bare) || FAZE_MEMBER_NAMES.includes(handle.replace(/^@/, ""));
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

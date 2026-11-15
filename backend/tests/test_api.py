@@ -193,3 +193,9 @@ def test_era_videos(c):
     assert j["videos"] and all(v["url"].startswith("https://www.youtube.com/") for v in j["videos"])
     assert any(v["relic"] and v["relic"]["collected"] for v in j["videos"])  # demo fan holds a 2010 relic
     assert c.get("/eras/nope/videos").status_code == 404
+
+
+def test_siren_member_channels(c):
+    ctx = lambda ch: c.get("/siren/context", params={"videoId": "vid9", "channel": ch}).json()["is_faze"]
+    assert ctx("FaZe Clan") and ctx("FaZe Rug") and ctx("Swagg") and ctx("Stable Ronaldo") and ctx("@jarvis")
+    assert not ctx("SwaggerGaming") and not ctx("MrBeast") and not ctx("Rugby Highlights")

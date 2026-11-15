@@ -7,6 +7,13 @@ export const DEFAULTS = {
   apiTimeoutMs: 2500                  // after this, fall back to bundled lore so the demo never stalls
 };
 
+// FaZe members whose channels don't say "FaZe" any more. Matched against the channel NAME exactly
+// (case-insensitive, an optional "FaZe" prefix and punctuation removed), so "Swagg" counts but "SwaggerGaming" doesn't.
+export const FAZE_MEMBER_NAMES = [
+  "rug", "banks", "apex", "adapt", "swagg", "jarvis", "kaysan", "lacy", "stable ronaldo", "silky", "jason",
+  "temperrr", "clipz", "teeqo", "sensei", "censor", "megga", "replays", "nickmercs", "booya", "santana",
+];
+
 // Channels treated as FaZe even if the name check misses (lower-case handles / Twitch logins).
 export const FAZE_CHANNELS = [
   "@fazeclan", "@faze", "@fazerug", "@fazeadapt", "@fazeapex", "@fazeswagg", "@fazebanks", "@fazetemperrr",

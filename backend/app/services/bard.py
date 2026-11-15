@@ -60,7 +60,9 @@ def youtube_url(e: dict) -> str:
     vid, start = e.get("video_id"), int(e.get("start_s") or 0)
     if vid:
         return f"https://www.youtube.com/watch?v={vid}" + (f"&t={start}s" if start else "")
-    return "https://www.youtube.com/results?search_query=" + quote_plus(e.get("find_video") or f"FaZe Clan {e['title']} {e.get('year', '')}")
+    # search inside the official FaZe Clan channel, so every result is a FaZe upload
+    q = (e.get("find_video") or f"{e['title']} {e.get('year', '')}").replace("FaZe Clan ", "").strip()
+    return "https://www.youtube.com/@FaZeClan/search?query=" + quote_plus(q)
 
 
 def _template(era: str, path: str, entries: list[dict]) -> _Script:
