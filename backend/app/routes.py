@@ -487,3 +487,42 @@ async def rewards_claim(fan_id: str, payload: dict, authorization: Optional[str]
         raise HTTPException(403, str(e))
     except ValueError as e:
         raise HTTPException(422, str(e))
+
+
+# ------------------------------------------------------------- era videos (map -> YouTube -> Siren)
+@router.get("/eras/{era}/videos", tags=["hub"],
+            description="FaZe videos for one era of the Odyssey Map. Lore entries with a video_id link straight to the "
+                        "moment (+ thumbnail); without one, a YouTube search built from the lore's find_video hint. "
+                        "Opening a FaZe video is where the Siren extension takes over. Pass fan_id to mark collected relics.")
+async def era_videos(era: str, fan_id: Optional[str] = None, limit: int = Query(6, ge=1, le=20)):
+    from urllib.parse import quote_plus
+    if era not in ERAS:
+        raise HTTPException(404, f"era must be one of {ERAS}")
+    have = {r["id"] for r in await store().list_fan_relics(fan_id)} if fan_id else set()
+    items = []
+    for e in lore().for_era(era):
+        if e.get("sensitive"):
+            continue
+        vid = e.get("video_id")
+        start = int(e.get("start_s") or 0)
+        q = e.get("find_video") or f"FaZe Clan {e['title']} {e.get('year', '')}"
+        relic = e.get("relic") or {}
+        items.append({
+            "lore_id": e["id"], "title": e["title"], "year": e.get("year"), "summary": e.get("summary"),
+            "video_id": vid, "start_s": start,
+            "url": f"https://www.youtube.com/watch?v={vid}" + (f"&t={start}s" if start else "") if vid
+                   else f"https://www.youtube.com/results?search_query={quote_plus(q)}",
+            "thumbnail": f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg" if vid else None,
+            "kind": "moment" if vid else "search",
+            "relic": {"id": relic.get("id"), "name": relic.get("name"), "rarity": relic.get("rarity"),
+                      "collected": relic.get("id") in have} if relic else None,
+        })
+    # most-watched uploads from that era (filled by scripts.ingest_youtube --write)
+    known = {i["video_id"] for i in items if i["video_id"]}
+    for v in sorted([v for v in lore().video_index if v.get("era") == era and v.get("video_id") not in known],
+                    key=lambda v: -(v.get("views") or 0))[:3]:
+        items.append({"lore_id": None, "title": v.get("title"), "year": (v.get("published_at") or "")[:4] or None,
+                      "summary": f"{v.get('channel', 'FaZe')} · {v.get('views', 0):,} views", "video_id": v["video_id"],
+                      "start_s": 0, "url": f"https://www.youtube.com/watch?v={v['video_id']}",
+                      "thumbnail": f"https://i.ytimg.com/vi/{v['video_id']}/hqdefault.jpg", "kind": "upload", "relic": None})
+    return {"era": era, "label": ERA_LABELS[era], "videos": items[:limit]}

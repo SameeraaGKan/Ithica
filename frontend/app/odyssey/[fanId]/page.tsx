@@ -4,12 +4,14 @@ import { useParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import DailyOmen from "@/components/DailyOmen";
 import DrachmaeCounter from "@/components/DrachmaeCounter";
+import EraVideos from "@/components/EraVideos";
 import EpisodePlayer from "@/components/EpisodePlayer";
 import OdysseyMap from "@/components/OdysseyMap";
 import RelicGrid from "@/components/RelicGrid";
 import SourceBadge from "@/components/SourceBadge";
 import { api } from "@/lib/api";
 import { usePoll } from "@/lib/usePoll";
+import type { EraId } from "@/lib/types";
 
 // P1 shareable recap: renders a vertical clip of this fan's Odyssey on the backend.
 function ShareRecap({ fanId }: { fanId: string }) {
@@ -44,6 +46,7 @@ export default function OdysseyPage() {
   const fetcher = useCallback(() => api.odyssey(fanId), [fanId]);
   // Poll every 3s so Siren relic collects show up live on the Hub.
   const { data, source, refresh } = usePoll(fetcher, 3000);
+  const [picked, setPicked] = useState<EraId | null>(null); // map stop the fan tapped (default: their entry era)
 
   if (!data) {
     return <div className="py-24 text-center font-display text-xl text-muted">The Bard is finding your place in the story…</div>;
@@ -64,7 +67,8 @@ export default function OdysseyPage() {
         </div>
       </div>
 
-      <OdysseyMap entryEra={fan.entry_era} path={fan.path} />
+      <OdysseyMap entryEra={fan.entry_era} path={fan.path} selected={picked ?? fan.entry_era} onSelect={setPicked} />
+      <EraVideos era={picked ?? fan.entry_era} fanId={fan.id} path={fan.path} />
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">

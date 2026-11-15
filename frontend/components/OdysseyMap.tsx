@@ -4,7 +4,17 @@ import { ERAS } from "@/lib/eras";
 import type { EraId, FanPath } from "@/lib/types";
 
 // The Odyssey Map: 5 eras on a voyage path, path draws in, fan's entry era pulses.
-export default function OdysseyMap({ entryEra, path }: { entryEra: EraId; path: FanPath }) {
+export default function OdysseyMap({
+  entryEra,
+  path,
+  selected,
+  onSelect,
+}: {
+  entryEra: EraId;
+  path: FanPath;
+  selected?: EraId;
+  onSelect?: (era: EraId) => void;
+}) {
   const W = 1000;
   const H = 220;
   const pts = ERAS.map((_, i) => ({ x: 80 + i * ((W - 160) / (ERAS.length - 1)), y: i % 2 === 0 ? 140 : 70 }));
@@ -53,8 +63,14 @@ export default function OdysseyMap({ entryEra, path }: { entryEra: EraId; path: 
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + i * 0.4, type: "spring" }}
-                style={{ transformOrigin: `${p.x}px ${p.y}px` }}
+                style={{ transformOrigin: `${p.x}px ${p.y}px`, cursor: onSelect ? "pointer" : undefined }}
+                onClick={() => onSelect?.(era.id)}
               >
+                {/* larger invisible hit area so the stop is easy to tap */}
+                <circle cx={p.x} cy={p.y} r={44} fill="transparent" />
+                {selected === era.id && (
+                  <circle cx={p.x} cy={p.y} r={isEntry ? 27 : 20} fill="none" stroke="white" strokeWidth={2} strokeDasharray="4 4" />
+                )}
                 {isEntry && (
                   <motion.circle
                     cx={p.x}
@@ -91,7 +107,10 @@ export default function OdysseyMap({ entryEra, path }: { entryEra: EraId; path: 
           })}
         </svg>
       </div>
-      <p className="mt-2 text-sm text-muted">{ERAS[Math.max(entryIdx, 0)].blurb}</p>
+      <p className="mt-2 text-sm text-muted">
+        {(selected ? ERAS.find((e) => e.id === selected) : ERAS[Math.max(entryIdx, 0)])?.blurb}
+        {onSelect && <span className="ml-2 text-xs text-faze">Tap any era to watch it.</span>}
+      </p>
     </div>
   );
 }

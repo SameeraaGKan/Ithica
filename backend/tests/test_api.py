@@ -186,3 +186,10 @@ def test_rewards_tiers_and_pass(c):
     assert c.post(f"/rewards/{f}/claim", json={"reward_id": "meet_greet"}).status_code == 422  # must pick a member
     ok = c.post(f"/rewards/{f}/claim", json={"reward_id": "meet_greet", "member": "Rug"}).json()
     assert "Rug" in ok["message"]
+
+
+def test_era_videos(c):
+    j = c.get("/eras/2010_trickshots/videos", params={"fan_id": "demo_odysseus"}).json()
+    assert j["videos"] and all(v["url"].startswith("https://www.youtube.com/") for v in j["videos"])
+    assert any(v["relic"] and v["relic"]["collected"] for v in j["videos"])  # demo fan holds a 2010 relic
+    assert c.get("/eras/nope/videos").status_code == 404

@@ -27,6 +27,7 @@ import type {
   WeeklyTrial,
   RewardsStatus,
   RewardClaim,
+  EraVideo,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
@@ -211,6 +212,15 @@ export const api = {
         sponsor: v.sponsor ?? null,
       }),
       ORACLE_TIMEOUT_MS,
+    ),
+
+  // Videos for one era of the map; opening one on YouTube is where the Siren takes over.
+  eraVideos: (era: EraId, fanId?: string) =>
+    call<EraVideo[]>(
+      `/eras/${ERA_OUT[era]}/videos${fanId ? `?fan_id=${encodeURIComponent(fanId)}` : ""}`,
+      undefined,
+      () => [],
+      (r) => r.videos ?? [],
     ),
 
   // Tier system: relic-count tiers + the Pass-only meet & greet.

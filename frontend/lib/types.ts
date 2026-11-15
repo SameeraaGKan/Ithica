@@ -146,3 +146,17 @@ export interface RewardsStatus {
   rewards: Reward[];
   faze_members: string[];
 }
+
+// Map -> YouTube (backend GET /eras/{era}/videos)
+export interface EraVideo {
+  lore_id: string | null;
+  title: string;
+  year?: number | string | null;
+  summary?: string | null;
+  video_id?: string | null;
+  start_s: number;
+  url: string;
+  thumbnail?: string | null;
+  kind: "moment" | "search" | "upload";
+  relic?: { id: string; name: string; rarity: string; collected: boolean } | null;
+}
