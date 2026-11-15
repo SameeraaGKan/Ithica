@@ -1,0 +1,36 @@
+# One-click backend on Render: Dashboard -> New -> Blueprint -> pick this repo.
+# Then paste your keys when Render asks (the sync: false ones), and set PUBLIC_BASE_URL to the
+# https://<name>.onrender.com address Render gives you.
+services:
+  - type: web
+    name: ithaca-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: ELEVENLABS_AGENT_ID
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: TIGER_DSN
+        sync: false
+      - key: TOKEN_SECRET
+        generateValue: true
+      - key: ORACLE_PROVIDERS
+        value: gemini
+      - key: TEXT_PROVIDERS
+        value: gemini

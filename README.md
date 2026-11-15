@@ -241,7 +241,24 @@ pytest -q                             # 43 tests, no keys needed
 
 ---
 
-## Deploy (Vultr)
+## Deploy
+
+### Easiest: Render (API) + Vercel (Hub), about 15 minutes, free
+
+**1. API on Render.** [render.com](https://render.com) → **New → Blueprint** → pick this repo. It reads `render.yaml` and builds `backend/Dockerfile` (ffmpeg included).
+   - Paste your keys when asked (Gemini, ElevenLabs, MongoDB, Tiger; leave any you don't have empty).
+   - Once it's live, copy its address (`https://ithaca-api-xxxx.onrender.com`), set **`PUBLIC_BASE_URL`** to it in Render's Environment tab, and redeploy. Check `/health`.
+   - That public address also replaces the cloudflared tunnel: rerun `python -m scripts.setup_bard_agent` locally with `PUBLIC_BASE_URL` set to it, so the Bard's tools point at Render.
+
+**2. Hub on Vercel.** [vercel.com](https://vercel.com) → **Add New → Project** → import this repo.
+   - **Root Directory:** `frontend` (Next.js is detected automatically).
+   - **Environment variable:** `NEXT_PUBLIC_API_URL` = your Render address. Deploy.
+
+**3. Siren.** In its ⚙ settings, set API base to the Render address and Web base to the Vercel address.
+
+Notes: the free Render plan sleeps after 15 idle minutes (the first request then takes ~50 s), so open `/health` a minute before the demo. Its disk is wiped on each deploy: without `TIGER_DSN` fans and relics reset, and cached audio is regenerated (run `pregen_episodes --intro-only` locally against it, or just open the montage once). The local Ollama backup isn't available there, so `render.yaml` sets the providers to Gemini only.
+
+### Vultr (sponsor track, your own server + domain)
 
 ```bash
 # on a fresh Ubuntu VM, with the DNS A record for api.<domain> pointing at it
@@ -250,7 +267,7 @@ nano /etc/ithaca.env && systemctl restart ithaca-api
 sudo bash /opt/ithaca/ops/redeploy.sh          # every redeploy
 ```
 
-Details: [`docs/siren-data-ops.md`](docs/siren-data-ops.md).
+Caddy gets HTTPS automatically. Details: [`docs/siren-data-ops.md`](docs/siren-data-ops.md).
 
 ---
 
