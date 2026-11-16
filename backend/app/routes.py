@@ -4,6 +4,7 @@ import logging
 import re
 from typing import Optional
 
+from pydantic import BaseModel
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
 
 from app.auth import check_fan, fan_token, require_service_key
@@ -337,7 +338,9 @@ async def bard_agent_session(payload: Optional[dict] = None):
     out = {"fan_id": fan["id"], "fan_token": fan_token(fan["id"]),
            "dynamic_variables": {"fan_id": fan["id"], "handle": fan.get("handle") or ""},
            "agent_id": None, "signed_url": None, "conversation_token": None, "mode": "unconfigured"}
-    if s.has_bard_agent:
+    if s.bard_voice != "elevenlabs":
+        out["mode"] = "free"  # browser speech + POST /bard/chat
+    elif s.has_bard_agent:
         if s.elevenlabs_agent_public:
             out.update(agent_id=s.elevenlabs_agent_id, mode="public")
         # Websocket first: WebRTC (LiveKit) drops on some networks right after connecting, and the SDK's websocket
@@ -347,6 +350,51 @@ async def bard_agent_session(payload: Optional[dict] = None):
         elif token := await bard_agent.conversation_token():
             out.update(agent_id=s.elevenlabs_agent_id, conversation_token=token, mode="webrtc")
     return out
+
+
+class BardChatTurn(BaseModel):
+    who: str  # "you" or "bard"
+    text: str
+
+
+class BardChatRequest(BaseModel):
+    fan_id: Optional[str] = None
+    history: list[BardChatTurn] = []
+
+
+class _BardReply(BaseModel):
+    reply: str
+    ready: bool  # knows when they found FaZe (or that they're new) and has heard about games
+
+
+# Asked in order when Gemini is unavailable, so the free Bard never stalls.
+_BARD_QUESTIONS = ["Who was your guy? Your favorite FaZe member, if you had one?", "And what games do you play these days?"]
+
+
+@router.post("/bard/chat", tags=["hub"],
+             description="The free Bard (no ElevenLabs): the browser sends the conversation so far and gets the Bard's next line. "
+                         "When he knows enough, the fan is classified and done=true comes back with their fan_id.")
+async def bard_chat(req: BardChatRequest):
+    from app.services.bard_agent import FIRST_MESSAGE, SYSTEM_PROMPT
+    from app.services.llm import generate_json
+    said = [t.text.strip() for t in req.history if t.who == "you" and t.text.strip()][-6:]
+    if not said:
+        return {"reply": FIRST_MESSAGE, "done": False, "fan_id": req.fan_id}
+    convo = "\n".join(f"{'Fan' if t.who == 'you' else 'Bard'}: {t.text}" for t in req.history[-12:])
+    persona = SYSTEM_PROMPT.split("As soon as you know")[0]  # the voice and the three questions, without the tool steps
+    out = await generate_json(
+        f"Conversation so far:\n{convo}\n\nWrite the Bard's next line (one or two short spoken sentences, at most one question). "
+        "Set ready=true once you know when they found FaZe (or that they are new) and have heard what games they play.",
+        _BardReply, system=persona, timeout=8.0)
+    ready = (out.ready if out else False) or len(said) >= 3  # three answers is enough, whatever the model thinks
+    if not ready:
+        return {"reply": out.reply if out else _BARD_QUESTIONS[min(len(said), len(_BARD_QUESTIONS)) - 1], "done": False, "fan_id": req.fan_id}
+    res = await onboard_classify(ClassifyRequest(fan_id=req.fan_id, transcript=" ".join(said)))
+    await store().log_event(res.fan_id, "bard_onboard", "web", {"path": res.path, "era": res.entry_era, "voice": "free"})
+    when = "now" if res.entry_era == "today" else "in " + ERA_LABELS[res.entry_era].split(" · ")[0]  # spoken: "in 2013"
+    line = res.bard_line.replace(" · ", " ")  # "2013 · Rug Era" reads aloud as "2013 Rug Era"
+    return {"reply": f"{line} Look upon your Odyssey Map: your road begins {when}. Farewell for now, traveler.",
+            "done": True, "fan_id": res.fan_id, "path": res.path, "entry_era": res.entry_era}
 
 
 @router.post("/tools/get_lore", tags=["agent-tools"], dependencies=[Depends(require_service_key)])

@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     elevenlabs_agent_id: str = ""
     elevenlabs_agent_llm: str = "gemini-2.5-flash"
     elevenlabs_agent_public: bool = False  # true = browser connects with agent_id; false = we mint signed URLs
+    # Bard voice on the Hub: "free" = browser speech + /bard/chat (no ElevenLabs credits); "elevenlabs" = the agent above
+    bard_voice: str = "free"
 
     # Part B: Chert (iMessage send/receive; FaceTime runs through oracle_agent/ + `chert dev`)
     chert_api_key: str = ""                 # Bearer key from the Chert console (docs call it the signing secret)

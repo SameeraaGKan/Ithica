@@ -451,9 +451,9 @@ export const api = {
     ),
 
   // Part B: ask the backend how to connect the Bard voice agent. It pre-creates the fan and returns
-  // mode "signed" (signed_url), "public" (agent_id) or "unconfigured" (use the typed path).
+  // mode "free" (browser speech + bardChat), "signed" (signed_url), "public" (agent_id) or "unconfigured" (typed path).
   async bardSession(handle?: string): Promise<{
-    mode: "webrtc" | "signed" | "public" | "unconfigured";
+    mode: "free" | "webrtc" | "signed" | "public" | "unconfigured";
     signed_url: string | null;
     conversation_token?: string | null;
     agent_id: string | null;
@@ -465,6 +465,21 @@ export const api = {
       return await raw("/bard/agent/session", { method: "POST", body: JSON.stringify({ handle: handle ?? null }) });
     } catch (err) {
       console.warn("[ithaca] bard session unavailable:", err);
+      return null;
+    }
+  },
+
+  // The free Bard: send the conversation so far, get his next line. done=true once the fan is classified.
+  async bardChat(fanId: string | null, history: { who: "bard" | "you"; text: string }[]): Promise<{
+    reply: string;
+    done: boolean;
+    fan_id: string | null;
+  } | null> {
+    if (!API_BASE) return null;
+    try {
+      return await raw("/bard/chat", { method: "POST", body: JSON.stringify({ fan_id: fanId, history }) }, 20000);
+    } catch (err) {
+      console.warn("[ithaca] bard chat unavailable:", err);
       return null;
     }
   },

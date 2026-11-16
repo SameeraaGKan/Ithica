@@ -11,6 +11,8 @@ type Line = { who: "bard" | "you"; text: string };
 
 /*
   Arrival: voice onboarding with the Bard.
+  Default (BARD_VOICE=free): the browser listens and speaks, POST /bard/chat writes his lines, no ElevenLabs credits.
+  With BARD_VOICE=elevenlabs on the backend, the ElevenLabs agent below runs the call instead:
   Person B owns the ElevenLabs agent (backend/app/services/bard_agent.py). This page asks the backend for a
   session (POST /bard/agent/session: signed URL + the pre-created fan_id as a dynamic variable). The agent's
   server tool calls POST /tools/classify_fan; its client tool show_odyssey_map routes the fan to their map.
@@ -35,7 +37,7 @@ function Onboard() {
     if (AGENT_ID || !API_BASE) return;
     fetch(`${API_BASE}/health`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((h) => setVoiceReady(!!h.bard_agent))
+      .then((h) => setVoiceReady(h.bard_voice === "free" || !!h.bard_agent))
       .catch(() => setVoiceReady(false));
   }, []);
 
@@ -94,18 +96,112 @@ function Onboard() {
     },
   });
 
+  // ---- The free Bard: the browser listens (Web Speech API), /bard/chat answers, the browser speaks. No credits.
+  const [freeLive, setFreeLive] = useState(false);
+  const [freeSpeaking, setFreeSpeaking] = useState(false);
+  const freeOn = useRef(false);
+  const turnBusy = useRef(false);
+  const micDenied = useRef(false); // mic blocked: keep chatting by typing
+  const rec = useRef<{ abort: () => void } | null>(null);
+  const hist = useRef<Line[]>([]);
+  const addLine = (l: Line) => {
+    hist.current = [...hist.current, l];
+    setLines(hist.current.slice(-8));
+  };
+  const speak = (text: string) =>
+    new Promise<void>((resolve) => {
+      if (!("speechSynthesis" in window)) return resolve();
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      // a deeper English storyteller voice when the browser has one
+      u.voice = voices.find((v) => /^en/i.test(v.lang) && /daniel|george|ryan|guy|male/i.test(v.name)) || voices.find((v) => /^en/i.test(v.lang)) || null;
+      u.rate = 0.95;
+      u.pitch = 0.9;
+      u.onend = u.onerror = () => resolve();
+      setTimeout(resolve, 2500 + text.length * 90); // some browsers never fire onend: never freeze the chat
+      setFreeSpeaking(true);
+      window.speechSynthesis.speak(u);
+    }).finally(() => setFreeSpeaking(false));
+  const stopFree = () => {
+    freeOn.current = false;
+    setFreeLive(false);
+    rec.current?.abort();
+    rec.current = null;
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  };
+  useEffect(() => stopFree, []); // leaving the page stops listening and speaking
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const SR = typeof window !== "undefined" ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
+  const listen = () => {
+    if (!freeOn.current || !SR || micDenied.current || turnBusy.current || rec.current) return;
+    const r = new SR();
+    r.lang = "en-US";
+    r.interimResults = false;
+    r.maxAlternatives = 1;
+    r.onresult = (e: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => {
+      const t = e.results[0][0].transcript.trim();
+      if (t) freeTurn(t);
+    };
+    r.onerror = (e: { error: string }) => {
+      if (e.error === "not-allowed") {
+        micDenied.current = true;
+        setError("Microphone blocked. Allow it from the lock icon in the address bar, or type to the Bard below.");
+      }
+    };
+    r.onend = () => {
+      if (rec.current === r) rec.current = null;
+      listen(); // silence ends a listen: keep listening until the fan speaks or the chat ends
+    };
+    rec.current = r;
+    r.start();
+  };
+  const freeTurn = async (text: string) => {
+    heardFan.current = true;
+    turnBusy.current = true;
+    rec.current?.abort();
+    rec.current = null;
+    addLine({ who: "you", text });
+    const r = await api.bardChat(sessionFan.current, hist.current);
+    const reply = r?.reply ?? "The songs are quiet for a moment, traveler. Tell me again?";
+    if (r?.fan_id) sessionFan.current = r.fan_id;
+    addLine({ who: "bard", text: reply });
+    await speak(reply);
+    turnBusy.current = false;
+    if (r?.done) {
+      stopFree();
+      sendHome();
+    } else listen();
+  };
+  const startFree = async () => {
+    freeOn.current = true;
+    micDenied.current = false;
+    setFreeLive(true);
+    hist.current = [];
+    setLines([]);
+    if (!SR) setError("Voice input needs Chrome or Edge. Type to the Bard below, he'll still answer out loud.");
+    turnBusy.current = true;
+    const first = await api.bardChat(sessionFan.current, []);
+    const line = first?.reply ?? "Sing to me, traveler. Tell me: when did you first find FaZe?";
+    addLine({ who: "bard", text: line });
+    await speak(line);
+    turnBusy.current = false;
+    listen();
+  };
+
   const start = async () => {
     setError(null);
     try {
-      // Ask for mic permission, then release it right away: the ElevenLabs SDK opens its own stream, and on some
-      // Windows / Bluetooth setups a second capture of the same mic receives silence while the first stays open.
-      const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
-      probe.getTracks().forEach((t) => t.stop());
       // Part B's backend pre-creates the fan and hands back how to connect (signed URL keeps the agent private).
       const session = await api.bardSession();
       sessionFan.current = session?.fan_id ?? null;
       sentHome.current = false;
       heardFan.current = false;
+      if (session?.mode === "free" || (!session && !AGENT_ID)) return startFree();
+      // Ask for mic permission, then release it right away: the ElevenLabs SDK opens its own stream, and on some
+      // Windows / Bluetooth setups a second capture of the same mic receives silence while the first stays open.
+      const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+      probe.getTracks().forEach((t) => t.stop());
       const showMap = async ({ fan_id }: { fan_id?: string }) => {
         if (fan_id) sessionFan.current = fan_id;
         setTimeout(sendHome, 6000); // let him finish the farewell line first
@@ -151,17 +247,20 @@ function Onboard() {
     if (!said.trim()) return;
     setBusy(true);
     sentHome.current = true; // no second jump from the farewell timer
+    stopFree();
     const { data } = await api.classify(said, sessionFan.current);
     if (conversation.status === "connected") await conversation.endSession();
     goToOdyssey(data.fan_id);
   };
 
-  const live = conversation.status === "connected";
+  const agentLive = conversation.status === "connected"; // ElevenLabs call
+  const live = agentLive || freeLive;
+  const speaking = agentLive ? conversation.isSpeaking : freeSpeaking;
 
   // Live readout while connected: is the mic reaching the SDK, and whose turn is it?
   const [micLevel, setMicLevel] = useState(0);
   useEffect(() => {
-    if (!live) {
+    if (!agentLive) {
       setMicLevel(0);
       return;
     }
@@ -170,15 +269,16 @@ function Onboard() {
       setMicLevel(v);
     }, 120);
     return () => clearInterval(id);
-  }, [live, conversation]);
+  }, [agentLive, conversation]);
   const heardYou = lines.some((l) => l.who === "you");
   const sendSay = () => {
     const t = say.trim();
     if (!t) return;
-    if (live) conversation.sendUserMessage(t); // no call running: it's kept for "Show my Odyssey"
+    setSay("");
+    if (freeLive) return void freeTurn(t); // the free Bard answers typed lines out loud too
+    if (agentLive) conversation.sendUserMessage(t); // no call running: it's kept for "Show my Odyssey"
     else heardFan.current = true;
     setLines((l): Line[] => [...l, { who: "you" as const, text: t }].slice(-8));
-    setSay("");
   };
 
   return (
@@ -191,9 +291,9 @@ function Onboard() {
 
       <div className="flex justify-center">
         <motion.button
-          onClick={live ? () => conversation.endSession() : start}
+          onClick={freeLive ? stopFree : agentLive ? () => conversation.endSession() : start}
           disabled={!voiceReady}
-          animate={live && conversation.isSpeaking ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          animate={live && speaking ? { scale: [1, 1.08, 1] } : { scale: 1 }}
           transition={{ repeat: Infinity, duration: 1.2 }}
           className={`flex h-44 w-44 flex-col items-center justify-center rounded-full border-4 text-white shadow-2xl transition disabled:cursor-not-allowed disabled:opacity-40 ${
             live ? "border-gold bg-faze shadow-faze/40" : "border-faze bg-panel hover:bg-faze/20"
@@ -201,14 +301,14 @@ function Onboard() {
         >
           <span className="text-5xl">🎙</span>
           <span className="mt-2 text-sm font-semibold">
-            {!voiceReady ? "Voice not set up yet" : live ? (conversation.isSpeaking ? "The Bard speaks…" : "Listening… tap to end") : "Tap to begin"}
+            {!voiceReady ? "Voice not set up yet" : live ? (speaking ? "The Bard speaks…" : "Listening… tap to end") : "Tap to begin"}
           </span>
         </motion.button>
       </div>
 
       {/* One box: the conversation, one input (voice or typed both land here), one button to reveal the Odyssey */}
       <div className="card space-y-3 text-left">
-        {live && (
+        {agentLive && (
           <div className="h-1 w-full overflow-hidden rounded-full bg-white/10" aria-label="Your mic level">
             <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.min(100, micLevel * 250)}%` }} />
           </div>

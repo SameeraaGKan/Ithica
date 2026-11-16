@@ -41,6 +41,7 @@ async def health():
         "gemini": s.has_gemini, "gemini_model": s.gemini_model,
         "elevenlabs": s.has_elevenlabs,
         "bard_agent": s.has_bard_agent,
+        "bard_voice": "elevenlabs" if s.bard_voice == "elevenlabs" and s.has_bard_agent else "free",
         "chert_imessage": s.has_chert,
         "chert_webhook_signed": bool(s.chert_webhook_secret),
         "lore_backend": lore().backend, "lore_entries": len(lore().entries),

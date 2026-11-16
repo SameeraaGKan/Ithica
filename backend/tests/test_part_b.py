@@ -43,9 +43,10 @@ def last_to(phone: str = PHONE) -> str:
 
 
 # ------------------------------------------------------------- Bard agent
-def test_agent_session_unconfigured(c):
+def test_agent_session_free_voice(c):
+    # BARD_VOICE defaults to "free": the Hub uses browser speech + /bard/chat, no ElevenLabs agent
     j = c.post("/bard/agent/session", json={"handle": "Ody"}).json()
-    assert j["mode"] == "unconfigured" and j["fan_id"] and j["dynamic_variables"]["fan_id"] == j["fan_id"]
+    assert j["mode"] == "free" and j["fan_id"] and j["dynamic_variables"]["fan_id"] == j["fan_id"]
     assert j["dynamic_variables"]["handle"] == "Ody" and "." in j["fan_token"]
 
 

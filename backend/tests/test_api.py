@@ -239,3 +239,16 @@ def test_intro_narration(c):
     assert j["voice"] == "bard" and len(j["lines"]) == 8
     assert all(l["text"] for l in j["lines"])
     assert all(l["audio_url"] is None for l in j["lines"])  # no ElevenLabs in tests: silent, never a robot voice
+
+
+def test_free_bard_chat_without_gemini(c):
+    # no Gemini in tests: canned questions, then classification after three answers
+    first = c.post("/bard/chat", json={"history": []}).json()
+    assert first["done"] is False and "find FaZe" in first["reply"]
+    hist = [{"who": "bard", "text": first["reply"]}]
+    for i, said in enumerate(["I found FaZe in 2011", "Clayster", "Warzone"]):
+        hist.append({"who": "you", "text": said})
+        r = c.post("/bard/chat", json={"history": hist}).json()
+        assert r["done"] is (i == 2)
+        hist.append({"who": "bard", "text": r["reply"]})
+    assert r["entry_era"] == "2010_trickshots" and r["fan_id"] and "Odyssey Map" in r["reply"]
